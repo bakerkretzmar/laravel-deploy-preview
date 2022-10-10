@@ -14,7 +14,8 @@
   },
   "homepage": "https://github.com/bakerkretzmar/deploy-preview#readme",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "ncc build index.js --license licenses.txt"
   },
   "main": "index.js",
   "dependencies": {
@@ -22,6 +23,7 @@
     "@actions/github": "^5.1.1"
   },
   "devDependencies": {
+    "@vercel/ncc": "^0.34.0",
     "prettier": "^2.7.1"
   },
   "prettier": {
