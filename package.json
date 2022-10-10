@@ -14,20 +14,27 @@
   },
   "homepage": "https://github.com/bakerkretzmar/deploy-preview#readme",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "ncc build index.js --license licenses.txt"
+    "run": "ncc run index.ts",
+    "test": "vitest",
+    "build": "ncc build index.ts --source-map --minify --license licenses.txt"
   },
-  "main": "index.js",
+  "type": "module",
+  "main": "dist/index.js",
   "dependencies": {
     "@actions/core": "^1.10.0",
-    "@actions/github": "^5.1.1"
+    "@actions/github": "^5.1.1",
+    "@actions/http-client": "^2.0.1",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.34.0",
-    "prettier": "^2.7.1"
+    "prettier": "^2.7.1",
+    "typescript": "^4.8.4"
   },
   "prettier": {
     "printWidth": 120,
-    "tabWidth": 2
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5"
   }
 }
