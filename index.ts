@@ -1,33 +1,30 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+import { PullRequestEvent } from '@octokit/webhooks-definitions/schema';
 import { map } from 'lodash';
 import { Forge } from './src/forge';
 import { Server, Site } from './src/types';
 
-// inputs:
-// - forge api token
-// - server tag
-// - base domain (to put subdomains under)
+const payload = github.context.payload as PullRequestEvent;
+core.info(`The PR branch is is: ${payload.pull_request.head.ref}`);
 
-const tag = 'personal';
-const domain = 'example.com';
+const serverId = core.getInput('server', { required: true });
+const domain = core.getInput('domain', { required: true });
 
-const name = 'foo'; // generate from github refs
+const name = payload.pull_request.head.ref;
 
-const servers = await Forge.servers();
-// console.log(servers);
+const server = { id: serverId };
 
-const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
-// console.log(sites);
+// const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
+const sites = await Forge.sites(server.id);
 
 const extantSite = sites.find((site) => site.name === name);
 
 if (extantSite) {
   // re-use existing site
+  console.log('Site exists');
 } else {
   console.log('Creating new site');
-
-  // const server = serverWithFewestSites(servers, sites);
 
   let site = await Forge.createSite(server.id, name, domain);
 
@@ -39,6 +36,7 @@ if (extantSite) {
   console.log('Site installed!');
 
   console.log('Creating new Git project');
+  await Forge.createProject(server.id, site.id, payload.repository.full_name, name);
   await retryUntil(() => site.repository_status !== 'installing', refreshSite);
   console.log('Repository installed!');
 
@@ -92,15 +90,3 @@ function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
 function sleep(s: number): Promise<void> {
   return new Promise((r) => setTimeout(r, s * 1000));
 }
-// try {
-//   // `who-to-greet` input defined in action metadata file
-//   const nameToGreet = core.getInput('who-to-greet');
-//   console.log(`Hello ${nameToGreet}!`);
-//   const time = new Date().toTimeString();
-//   core.setOutput('time', time);
-//   // Get the JSON webhook payload for the event that triggered the workflow
-//   const payload = JSON.stringify(github.context.payload, undefined, 2);
-//   console.log(`The event payload: ${payload}`);
-// } catch (error) {
-//   core.setFailed(error.message);
-// }

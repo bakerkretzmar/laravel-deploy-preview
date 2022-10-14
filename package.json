@@ -16,7 +16,8 @@
   "scripts": {
     "run": "ncc run index.ts",
     "test": "vitest",
-    "build": "ncc build index.ts --source-map --minify --license licenses.txt"
+    "build": "ncc build index.ts --source-map --minify --license licenses.txt",
+    "build-app": "ncc build index.ts --out ../deploy-preview-app/dist --minify && rsync -a action.yml ../deploy-preview-app"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -27,6 +28,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@octokit/webhooks-definitions": "^3.67.3",
     "@types/node": "^18.11.0",
     "@vercel/ncc": "^0.34.0",
     "prettier": "^2.7.1",

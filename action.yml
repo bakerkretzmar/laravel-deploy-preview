@@ -2,7 +2,7 @@ name: Deploy Preview
 description: Deploy a PR preview site to Forge
 inputs:
   forge-token:
-    description: Larave Forge API token
+    description: Laravel Forge API token
     required: true
 outputs:
 runs:

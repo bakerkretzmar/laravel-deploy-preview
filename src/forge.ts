@@ -1,9 +1,10 @@
+import * as core from '@actions/core';
 import { HttpClient, HttpClientResponse } from '@actions/http-client';
 import { BearerCredentialHandler as Bearer } from '@actions/http-client/lib/auth';
 import { TypedResponse as Response } from '@actions/http-client/lib/interfaces';
 import { Server, Site, Tag } from './types';
 
-let token = '';
+const token = core.getInput('forge-token');
 
 export class Forge {
   static #client?: HttpClient;
