@@ -16,16 +16,17 @@
   "scripts": {
     "run": "ncc run index.ts",
     "test": "vitest",
-    "build": "ncc build index.ts --source-map --minify --license licenses.txt",
-    "build-app": "ncc build index.ts --out ../deploy-preview-app/dist --minify && rsync -a action.yml ../deploy-preview-app"
+    "build": "tsc",
+    "compile": "ncc build --minify --source-map --license licenses.txt",
+    "package": "npm run build && npm run compile",
+    "build-app": "npm run build && ncc build --out ../deploy-preview-app/dist && rsync -a action.yml ../deploy-preview-app"
   },
   "type": "module",
-  "main": "dist/index.js",
+  "main": "lib/index.js",
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
-    "@actions/http-client": "^2.0.1",
-    "lodash": "^4.17.21"
+    "@actions/http-client": "^2.0.1"
   },
   "devDependencies": {
     "@octokit/webhooks-definitions": "^3.67.3",

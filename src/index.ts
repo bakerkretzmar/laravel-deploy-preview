@@ -1,15 +1,14 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { PullRequestEvent } from '@octokit/webhooks-definitions/schema';
-import { map } from 'lodash';
-import { Forge } from './src/forge';
-import { Server, Site } from './src/types';
+import { PullRequestEvent } from '@octokit/webhooks-definitions/schema.js';
+import { Forge } from './forge.js';
+import { Server, Site } from './types.js';
 
 const payload = github.context.payload as PullRequestEvent;
 core.info(`The PR branch is is: ${payload.pull_request.head.ref}`);
 
-const serverId = core.getInput('server', { required: true });
-const domain = core.getInput('domain', { required: true });
+const serverId = core.getInput('server', { required: true }); // 600058
+const domain = core.getInput('domain', { required: true }); // bee.limo
 
 const name = payload.pull_request.head.ref;
 
@@ -36,13 +35,14 @@ if (extantSite) {
   console.log('Site installed!');
 
   console.log('Creating new Git project');
-  await Forge.createProject(server.id, site.id, payload.repository.full_name, name);
+  const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
+  await Forge.createProject(server.id, site.id, payload.repository.full_name, database);
   await retryUntil(() => site.repository_status !== 'installing', refreshSite);
   console.log('Repository installed!');
 
   console.log('Updating .env file');
   const env = await Forge.dotEnv(server.id, site.id);
-  await Forge.setDotEnv(server.id, site.id, env.replace(/DB_DATABASE=.*?\n/, `DB_DATABASE=${name}\n`));
+  await Forge.setDotEnv(server.id, site.id, env.replace(/DB_DATABASE=.*?\n/, `DB_DATABASE=${database}\n`));
   console.log('Updated .env file!');
 
   // Tweak deployment script?
@@ -68,24 +68,24 @@ async function retryUntil(condition: () => boolean, attempt: () => void, pause: 
   }
 }
 
-function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
-  const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
-    carry[site.server_id] ??= 0;
-    carry[site.server_id]++;
-    return carry;
-  }, {});
+// function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
+//   const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
+//     carry[site.server_id] ??= 0;
+//     carry[site.server_id]++;
+//     return carry;
+//   }, {});
 
-  let count = 0;
-  const server = Object.entries(serverSites).reduce((carry: string, server: [string, number]): string => {
-    try {
-      return server[1] < count ? server[0] : carry;
-    } finally {
-      count = server[1];
-    }
-  }, Object.keys(serverSites)[0]);
+//   let count = 0;
+//   const server = Object.entries(serverSites).reduce((carry: string, server: [string, number]): string => {
+//     try {
+//       return server[1] < count ? server[0] : carry;
+//     } finally {
+//       count = server[1];
+//     }
+//   }, Object.keys(serverSites)[0]);
 
-  return servers.find(({ id }) => id === Number(server));
-}
+//   return servers.find(({ id }) => id === Number(server));
+// }
 
 function sleep(s: number): Promise<void> {
   return new Promise((r) => setTimeout(r, s * 1000));

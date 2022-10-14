@@ -4,7 +4,10 @@ inputs:
   forge-token:
     description: Laravel Forge API token
     required: true
-outputs:
+  server:
+    required: true
+  domain:
+    required: true
 runs:
   using: node16
   main: dist/index.js

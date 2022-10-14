@@ -1,8 +1,8 @@
 import * as core from '@actions/core';
 import { HttpClient, HttpClientResponse } from '@actions/http-client';
-import { BearerCredentialHandler as Bearer } from '@actions/http-client/lib/auth';
-import { TypedResponse as Response } from '@actions/http-client/lib/interfaces';
-import { Server, Site, Tag } from './types';
+import { BearerCredentialHandler as Bearer } from '@actions/http-client/lib/auth.js';
+import { TypedResponse as Response } from '@actions/http-client/lib/interfaces.js';
+import { Server, Site, Tag } from './types.js';
 
 const token = core.getInput('forge-token');
 
