@@ -25,10 +25,49 @@ const extantSite = sites.find((site) => site.name === name);
 if (extantSite) {
   // re-use existing site
 } else {
-  // create new site
-  const server = serverWithFewestSites(servers, sites);
+  console.log('Creating new site');
 
-  const site = await Forge.createSite(server.id, name, domain);
+  // const server = serverWithFewestSites(servers, sites);
+
+  let site = await Forge.createSite(server.id, name, domain);
+
+  const refreshSite = async () => {
+    site = await Forge.site(server.id, site.id);
+  };
+
+  await retryUntil(() => site.status !== 'installing', refreshSite);
+  console.log('Site installed!');
+
+  console.log('Creating new Git project');
+  await retryUntil(() => site.repository_status !== 'installing', refreshSite);
+  console.log('Repository installed!');
+
+  console.log('Updating .env file');
+  const env = await Forge.dotEnv(server.id, site.id);
+  await Forge.setDotEnv(server.id, site.id, env.replace(/DB_DATABASE=.*?\n/, `DB_DATABASE=${name}\n`));
+  console.log('Updated .env file!');
+
+  // Tweak deployment script?
+
+  console.log('Enabling Quick Deploy');
+  await Forge.autoDeploy(server.id, site.id);
+  await retryUntil(() => site.quick_deploy !== false, refreshSite);
+  console.log('Quick Deploy enabled!');
+
+  console.log('Deploying site');
+  await Forge.deploy(server.id, site.id);
+  await retryUntil(() => site.deployment_status === null, refreshSite);
+  console.log('Site deployed!');
+
+  console.log({ site });
+}
+
+async function retryUntil(condition: () => boolean, attempt: () => void, pause: number = 2) {
+  await attempt();
+  while (!condition()) {
+    await sleep(pause);
+    await attempt();
+  }
 }
 
 function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
@@ -50,8 +89,9 @@ function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
   return servers.find(({ id }) => id === Number(server));
 }
 
-console.log(serverWithFewestSites(servers, sites));
-
+function sleep(s: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, s * 1000));
+}
 // try {
 //   // `who-to-greet` input defined in action metadata file
 //   const nameToGreet = core.getInput('who-to-greet');

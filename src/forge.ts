@@ -1,4 +1,4 @@
-import { HttpClient } from '@actions/http-client';
+import { HttpClient, HttpClientResponse } from '@actions/http-client';
 import { BearerCredentialHandler as Bearer } from '@actions/http-client/lib/auth';
 import { TypedResponse as Response } from '@actions/http-client/lib/interfaces';
 import { Server, Site, Tag } from './types';
@@ -27,12 +27,55 @@ export class Forge {
     const response: Response<{ site: Site }> = await this.client().postJson(this.url(`servers/${server}/sites`), {
       domain: `${name}.${domain}`,
       project_type: 'php',
-      directory: name,
-      // isolated: true,
-      // username: 'laravel',
-      // database: 'site-com-db',
-      // php_version: 'php81',
+      directory: '/public',
+      database: name,
     });
+    return response.result.site;
+  }
+
+  static async site(server: number | string, site: number | string): Promise<Site> {
+    const response: Response<{ site: Site }> = await this.client().getJson(this.url(`servers/${server}/sites/${site}`));
+    return response.result.site;
+  }
+
+  static async createProject(
+    server: number | string,
+    site: number | string,
+    repository: string,
+    branch: string
+  ): Promise<Site> {
+    const response: Response<{ site: Site }> = await this.client().postJson(
+      this.url(`servers/${server}/sites/${site}/git`),
+      {
+        provider: 'github',
+        repository,
+        branch,
+        composer: true,
+      }
+    );
+    return response.result.site;
+  }
+
+  static async autoDeploy(server: number | string, site: number | string): Promise<void> {
+    await this.client().postJson(this.url(`servers/${server}/sites/${site}/deployment`), {});
+  }
+
+  static async dotEnv(server: number | string, site: number | string): Promise<string> {
+    const response: HttpClientResponse = await this.client().get(this.url(`servers/${server}/sites/${site}/env`));
+    return response.readBody();
+  }
+
+  static async setDotEnv(server: number | string, site: number | string, content: string): Promise<void> {
+    const response: Response<any> = await this.client().putJson(this.url(`servers/${server}/sites/${site}/env`), {
+      content,
+    });
+  }
+
+  static async deploy(server: number | string, site: number | string): Promise<Site> {
+    const response: Response<{ site: Site }> = await this.client().postJson(
+      this.url(`servers/${server}/sites/${site}/deployment/deploy`),
+      {}
+    );
     return response.result.site;
   }
 
