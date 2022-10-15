@@ -24,12 +24,12 @@ export class Forge {
     return servers.filter((s: Server) => s.tags.some((t: Tag) => t.name === tag));
   }
 
-  static async createSite(server: number | string, name: string, domain: string): Promise<Site> {
+  static async createSite(server: number | string, name: string, domain: string, database: string): Promise<Site> {
     const response: Response<{ site: Site }> = await this.client().postJson(this.url(`servers/${server}/sites`), {
       domain: `${name}.${domain}`,
       project_type: 'php',
       directory: '/public',
-      database: name,
+      database,
     });
     return response.result.site;
   }

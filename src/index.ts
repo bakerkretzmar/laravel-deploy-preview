@@ -25,7 +25,9 @@ if (extantSite) {
 } else {
   console.log('Creating new site');
 
-  let site = await Forge.createSite(server.id, name, domain);
+  const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
+
+  let site = await Forge.createSite(server.id, name, domain, database);
 
   const refreshSite = async () => {
     site = await Forge.site(server.id, site.id);
@@ -35,8 +37,7 @@ if (extantSite) {
   console.log('Site installed!');
 
   console.log('Creating new Git project');
-  const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
-  await Forge.createProject(server.id, site.id, payload.repository.full_name, database);
+  await Forge.createProject(server.id, site.id, payload.repository.full_name, name);
   await retryUntil(() => site.repository_status !== 'installing', refreshSite);
   console.log('Repository installed!');
 
