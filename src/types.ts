@@ -3,14 +3,12 @@ export type InputServer = {
   domain: string;
 };
 
-export type Server = {
+export type ServerPayload = {
   id: number;
   name: string;
-  tags: Tag[];
-  sites?: Site[];
 };
 
-export type Site = {
+export type SitePayload = {
   id: number;
   server_id: number;
   name: string;
@@ -18,10 +16,4 @@ export type Site = {
   repository_status: string | null;
   quick_deploy: boolean | null;
   deployment_status: string | null;
-  tags: Tag[];
-};
-
-export type Tag = {
-  id: number;
-  name: string;
 };

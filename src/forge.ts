@@ -1,7 +1,7 @@
 import { HttpClient, HttpClientResponse } from '@actions/http-client';
 import { BearerCredentialHandler as Bearer } from '@actions/http-client/lib/auth.js';
 import { TypedResponse as Response } from '@actions/http-client/lib/interfaces.js';
-import { Server as ServerResponse, Site, Tag } from './types.js';
+import { ServerPayload, SitePayload } from './types.js';
 
 export class Forge {
   static #token?: string;
@@ -11,38 +11,45 @@ export class Forge {
     this.#token = token;
   }
 
-  static async servers(): Promise<ServerResponse[]> {
-    const response: Response<{ servers: ServerResponse[] }> = await this.client().getJson(this.url('servers'));
+  static async servers(): Promise<ServerPayload[]> {
+    const response: Response<{ servers: ServerPayload[] }> = await this.client().getJson(this.url('servers'));
     return response.result.servers;
   }
 
-  static async server(server: number | string): Promise<ServerResponse> {
-    const response: Response<{ server: ServerResponse }> = await this.client().getJson(this.url(`servers/${server}`));
+  static async server(server: number | string): Promise<ServerPayload> {
+    const response: Response<{ server: ServerPayload }> = await this.client().getJson(this.url(`servers/${server}`));
     return response.result.server;
   }
 
-  static async sites(server: number | string): Promise<Site[]> {
-    const response: Response<{ sites: Site[] }> = await this.client().getJson(this.url(`servers/${server}/sites`));
+  static async sites(server: number | string): Promise<SitePayload[]> {
+    const response: Response<{ sites: SitePayload[] }> = await this.client().getJson(
+      this.url(`servers/${server}/sites`)
+    );
     return response.result.sites;
   }
 
-  static async serversWithTag(tag: string): Promise<ServerResponse[]> {
-    const servers = await this.servers();
-    return servers.filter((s: ServerResponse) => s.tags.some((t: Tag) => t.name === tag));
-  }
-
-  static async createSite(server: number | string, name: string, domain: string, database: string): Promise<Site> {
-    const response: Response<{ site: Site }> = await this.client().postJson(this.url(`servers/${server}/sites`), {
-      domain: `${name}.${domain}`,
-      project_type: 'php',
-      directory: '/public',
-      database,
-    });
+  static async createSite(
+    server: number | string,
+    name: string,
+    domain: string,
+    database: string
+  ): Promise<SitePayload> {
+    const response: Response<{ site: SitePayload }> = await this.client().postJson(
+      this.url(`servers/${server}/sites`),
+      {
+        domain: `${name}.${domain}`,
+        project_type: 'php',
+        directory: '/public',
+        database,
+      }
+    );
     return response.result.site;
   }
 
-  static async site(server: number | string, site: number | string): Promise<Site> {
-    const response: Response<{ site: Site }> = await this.client().getJson(this.url(`servers/${server}/sites/${site}`));
+  static async site(server: number | string, site: number | string): Promise<SitePayload> {
+    const response: Response<{ site: SitePayload }> = await this.client().getJson(
+      this.url(`servers/${server}/sites/${site}`)
+    );
     return response.result.site;
   }
 
@@ -51,8 +58,8 @@ export class Forge {
     site: number | string,
     repository: string,
     branch: string
-  ): Promise<Site> {
-    const response: Response<{ site: Site }> = await this.client().postJson(
+  ): Promise<SitePayload> {
+    const response: Response<{ site: SitePayload }> = await this.client().postJson(
       this.url(`servers/${server}/sites/${site}/git`),
       {
         provider: 'github',
@@ -79,8 +86,8 @@ export class Forge {
     });
   }
 
-  static async deploy(server: number | string, site: number | string): Promise<Site> {
-    const response: Response<{ site: Site }> = await this.client().postJson(
+  static async deploy(server: number | string, site: number | string): Promise<SitePayload> {
+    const response: Response<{ site: SitePayload }> = await this.client().postJson(
       this.url(`servers/${server}/sites/${site}/deployment/deploy`),
       {}
     );
@@ -102,22 +109,83 @@ export class Forge {
 export class Server {
   id: number;
   name: string;
-  tags: Tag[];
+  domain: string;
+
   sites?: Site[];
 
-  constructor(data: ServerResponse) {
+  constructor(domain: string, data: ServerPayload) {
     this.id = data.id;
     this.name = data.name;
-    this.tags = data.tags;
-    this.sites = data.sites;
+    this.domain = domain;
   }
 
-  static async fetch(id: number | string): Promise<Server> {
-    const server = await Forge.server(id);
-    return new Server(server);
+  static async create(id: number, domain: string): Promise<Server> {
+    const data = await Forge.server(id);
+    return new Server(domain, data);
   }
 
-  createSite() {
-    //
+  async loadSites(): Promise<void> {
+    const sites = await Forge.sites(this.id);
+    this.sites = sites.map((data) => new Site(data));
+  }
+
+  async createSite(name: string, database: string): Promise<Site> {
+    const data = await Forge.createSite(this.id, name, this.domain, database);
+    return new Site(data);
+  }
+}
+
+export class Site {
+  id: number;
+  server_id: number;
+  name: string;
+  status: string | null;
+  repository_status: string | null;
+  quick_deploy: boolean | null;
+  deployment_status: string | null;
+
+  constructor(data: SitePayload) {
+    this.id = data.id;
+    this.server_id = data.server_id;
+    this.name = data.name;
+    this.status = data.status;
+    this.repository_status = data.repository_status;
+    this.quick_deploy = data.quick_deploy;
+    this.deployment_status = data.deployment_status;
+  }
+
+  async createProject(name: string, repository: string): Promise<void> {
+    const data = await Forge.createProject(this.server_id, this.id, repository, name);
+    this.id = data.id;
+    this.server_id = data.server_id;
+    this.name = data.name;
+    this.status = data.status;
+    this.repository_status = data.repository_status;
+    this.quick_deploy = data.quick_deploy;
+    this.deployment_status = data.deployment_status;
+  }
+
+  async updateEnvironmentVariable(name: string, value: string): Promise<void> {
+    const env = await Forge.dotEnv(this.server_id, this.id);
+    await Forge.setDotEnv(this.server_id, this.id, env.replace(new RegExp(`/${name}=.*?\n/`), `${name}=${value}\n`));
+  }
+
+  async enableQuickDeploy(): Promise<void> {
+    await Forge.autoDeploy(this.server_id, this.id);
+  }
+
+  async deploy(): Promise<void> {
+    await Forge.deploy(this.server_id, this.id);
+  }
+
+  async refetch(): Promise<void> {
+    const data = await Forge.site(this.server_id, this.id);
+    this.id = data.id;
+    this.server_id = data.server_id;
+    this.name = data.name;
+    this.status = data.status;
+    this.repository_status = data.repository_status;
+    this.quick_deploy = data.quick_deploy;
+    this.deployment_status = data.deployment_status;
   }
 }
