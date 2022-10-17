@@ -16,6 +16,11 @@ export class Forge {
     return response.result.servers;
   }
 
+  static async server(server: number | string): Promise<ServerResponse> {
+    const response: Response<{ server: ServerResponse }> = await this.client().getJson(this.url(`servers/${server}`));
+    return response.result.server;
+  }
+
   static async sites(server: number | string): Promise<Site[]> {
     const response: Response<{ sites: Site[] }> = await this.client().getJson(this.url(`servers/${server}/sites`));
     return response.result.sites;
@@ -91,5 +96,28 @@ export class Forge {
       this.#client = new HttpClient('@tighten/laravel-deploy-preview', [new Bearer(this.#token)]);
     }
     return this.#client;
+  }
+}
+
+export class Server {
+  id: number;
+  name: string;
+  tags: Tag[];
+  sites?: Site[];
+
+  constructor(data: ServerResponse) {
+    this.id = data.id;
+    this.name = data.name;
+    this.tags = data.tags;
+    this.sites = data.sites;
+  }
+
+  static async fetch(id: number | string): Promise<Server> {
+    const server = await Forge.server(id);
+    return new Server(server);
+  }
+
+  createSite() {
+    //
   }
 }
