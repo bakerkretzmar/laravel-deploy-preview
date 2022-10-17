@@ -1,16 +1,18 @@
-import * as core from '@actions/core';
 import { HttpClient, HttpClientResponse } from '@actions/http-client';
 import { BearerCredentialHandler as Bearer } from '@actions/http-client/lib/auth.js';
 import { TypedResponse as Response } from '@actions/http-client/lib/interfaces.js';
-import { Server, Site, Tag } from './types.js';
-
-const token = core.getInput('forge-token');
+import { Server as ServerResponse, Site, Tag } from './types.js';
 
 export class Forge {
+  static #token?: string;
   static #client?: HttpClient;
 
-  static async servers(): Promise<Server[]> {
-    const response: Response<{ servers: Server[] }> = await this.client().getJson(this.url('servers'));
+  static setToken(token: string): void {
+    this.#token = token;
+  }
+
+  static async servers(): Promise<ServerResponse[]> {
+    const response: Response<{ servers: ServerResponse[] }> = await this.client().getJson(this.url('servers'));
     return response.result.servers;
   }
 
@@ -19,9 +21,9 @@ export class Forge {
     return response.result.sites;
   }
 
-  static async serversWithTag(tag: string): Promise<Server[]> {
+  static async serversWithTag(tag: string): Promise<ServerResponse[]> {
     const servers = await this.servers();
-    return servers.filter((s: Server) => s.tags.some((t: Tag) => t.name === tag));
+    return servers.filter((s: ServerResponse) => s.tags.some((t: Tag) => t.name === tag));
   }
 
   static async createSite(server: number | string, name: string, domain: string, database: string): Promise<Site> {
@@ -86,7 +88,7 @@ export class Forge {
 
   private static client(): HttpClient {
     if (this.#client === undefined) {
-      this.#client = new HttpClient('@tighten/laravel-deploy-preview', [new Bearer(token)]);
+      this.#client = new HttpClient('@tighten/laravel-deploy-preview', [new Bearer(this.#token)]);
     }
     return this.#client;
   }

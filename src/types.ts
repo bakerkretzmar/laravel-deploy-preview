@@ -1,3 +1,8 @@
+export type InputServer = {
+  id: number;
+  domain: string;
+};
+
 export type Server = {
   id: number;
   name: string;

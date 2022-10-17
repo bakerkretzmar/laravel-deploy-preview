@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/bakerkretzmar/deploy-preview#readme",
   "scripts": {
-    "run": "ncc run index.ts",
+    "debug": "ncc run src/debug.ts",
     "test": "vitest",
     "build": "tsc",
     "compile": "ncc build --minify --source-map --license licenses.txt",
@@ -23,15 +23,15 @@
   },
   "type": "module",
   "main": "lib/index.js",
-  "dependencies": {
+  "devDependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
-    "@actions/http-client": "^2.0.1"
-  },
-  "devDependencies": {
+    "@actions/http-client": "^2.0.1",
     "@octokit/webhooks-definitions": "^3.67.3",
     "@types/node": "^18.11.0",
     "@vercel/ncc": "^0.34.0",
+    "axios": "^1.1.3",
+    "dotenv": "^16.0.3",
     "prettier": "^2.7.1",
     "typescript": "^4.8.4"
   },
