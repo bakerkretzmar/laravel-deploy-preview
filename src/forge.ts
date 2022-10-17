@@ -110,6 +110,20 @@ export class Forge {
     return response.result.site;
   }
 
+  static async createJob(
+    server: number,
+    command: string,
+    frequency: string = 'minutely',
+    user: string = 'forge'
+  ): Promise<any> {
+    const response: Response<any> = await this.client().postJson(this.url(`servers/${server}/jobs`), {
+      command,
+      frequency,
+      user,
+    });
+    return response.result;
+  }
+
   private static url(path: string): string {
     return `https://forge.laravel.com/api/v1/${path}`;
   }
@@ -197,6 +211,10 @@ export class Site {
 
   async deploy(): Promise<void> {
     await Forge.deploy(this.server_id, this.id);
+  }
+
+  async enableScheduler(): Promise<void> {
+    console.log(await Forge.createJob(this.server_id, `php /home/forge/${this.name}/artisan schedule:run`));
   }
 
   async refetch(): Promise<void> {

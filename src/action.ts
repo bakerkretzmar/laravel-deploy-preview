@@ -49,13 +49,19 @@ export async function run(
     await site.updateEnvironmentVariable('DB_DATABASE', database);
     console.log('Updated .env file!');
 
-    // Tweak deployment script?
+    // Set up scheduler
+    // Doesn't need to wait
+    console.log('Setting up scheduler.');
+    await site.enableScheduler();
+    console.log('Scheduler set up!');
+
     if (afterDeploy) {
       console.log('Updating deploy script');
       site.appendToDeployScript(afterDeploy);
       console.log('Updated deploy script!');
     }
 
+    // Doesn't need to wait
     console.log('Enabling Quick Deploy');
     await site.enableQuickDeploy();
     await retryUntil(

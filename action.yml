@@ -12,8 +12,11 @@ inputs:
     description: List of Forge servers to use for deploy previews.
     required: true
   after-deploy:
+    # 'post-deploy'? 'command'?
     description: Shell script to append and run after the default Forge deploy script. E.g. `npm ci && npm run build`.
     required: false
+  # env variables
+  #
 runs:
   using: node16
   main: dist/index.js
