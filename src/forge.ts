@@ -28,6 +28,11 @@ type CertificatePayload = {
   active: boolean;
 };
 
+type DatabasePayload = {
+  id: number;
+  name: string;
+};
+
 export class Forge {
   static #token: string;
   static #client?: AxiosInstance;
@@ -57,6 +62,14 @@ export class Forge {
 
   static async getSite(server: number, site: number): Promise<SitePayload> {
     return (await this.get(`servers/${server}/sites/${site}`)).data.site;
+  }
+
+  static async listDatabases(server: number): Promise<DatabasePayload[]> {
+    return (await this.get(`server/${server}/databases`)).data.databases;
+  }
+
+  static async deleteDatabase(server: number, database: number): Promise<void> {
+    await this.delete(`server/${server}/databases/${database}`);
   }
 
   static async createGitProject(
@@ -153,6 +166,10 @@ export class Forge {
   private static put(path: string, data: object) {
     return this.client().put(path, data);
   }
+
+  private static delete(path: string) {
+    return this.client().delete(path);
+  }
 }
 
 export class Server {
@@ -195,7 +212,7 @@ export class Site {
   quick_deploy: boolean | null;
   deployment_status: string | null;
 
-  certificate_id: number;
+  certificate_id?: number;
 
   constructor(data: SitePayload) {
     this.id = data.id;
@@ -227,7 +244,11 @@ export class Site {
     );
   }
 
-  async enableScheduler(): Promise<void> {
+  async installScheduler(): Promise<void> {
+    await Forge.createScheduledJob(this.server_id, `php /home/forge/${this.name}/artisan schedule:run`);
+  }
+
+  async uninstallScheduler(): Promise<void> {
     await Forge.createScheduledJob(this.server_id, `php /home/forge/${this.name}/artisan schedule:run`);
   }
 
@@ -259,6 +280,17 @@ export class Site {
       () => this.deployment_status === null,
       async () => await this.refetch()
     );
+  }
+
+  // TODO figure out a way to safely+reliably figure the name out internally so it doesn't need to be passed in
+  // Environment file??
+  async deleteDatabase(name: string): Promise<void> {
+    const database = (await Forge.listDatabases(this.server_id)).find((db) => db.name === name);
+    await Forge.deleteDatabase(this.server_id, database.id);
+  }
+
+  async delete(): Promise<void> {
+    //
   }
 
   async refetch(): Promise<void> {

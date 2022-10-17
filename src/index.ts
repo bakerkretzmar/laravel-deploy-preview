@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { PullRequestEvent } from '@octokit/webhooks-definitions/schema.js';
 import { Forge } from './forge.js';
-import { run } from './action.js';
+import { createPreview, destroyPreview } from './action.js';
 
 const servers = core.getMultilineInput('servers', { required: true }).map((line) => {
   core.debug(`Parsing server input line: ${line}`);
@@ -28,20 +28,30 @@ const afterDeploy = core.getInput('after-deploy', { required: false });
 
 const pr = github.context.payload as PullRequestEvent;
 
-const octokit = github.getOctokit(core.getInput('github-token', { required: true }));
+if (pr.action === 'opened') {
+  // TODO seems like there's a bug in these type definitions, narrowing it to PullRequestOpenedEvent causes an error
+  const pr = github.context.payload as PullRequestEvent;
+  const preview = await createPreview({
+    name: pr.pull_request.head.ref,
+    repository: pr.repository.full_name,
+    servers,
+    afterDeploy,
+    info: core.info,
+    debug: core.debug,
+  });
 
-const preview = await run({
-  name: pr.pull_request.head.ref,
-  repository: pr.repository.full_name,
-  servers,
-  afterDeploy,
-  info: core.info,
-  debug: core.debug,
-});
-
-octokit.rest.issues.createComment({
-  owner: pr.repository.owner.login,
-  repo: pr.repository.name,
-  issue_number: pr.number,
-  body: preview.url,
-});
+  const octokit = github.getOctokit(core.getInput('github-token', { required: true }));
+  octokit.rest.issues.createComment({
+    owner: pr.repository.owner.login,
+    repo: pr.repository.name,
+    issue_number: pr.number,
+    body: preview.url,
+  });
+} else if (pr.action === 'closed') {
+  await destroyPreview({
+    name: pr.pull_request.head.ref,
+    servers,
+    info: core.info,
+    debug: core.debug,
+  });
+}

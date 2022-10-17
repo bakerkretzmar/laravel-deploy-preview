@@ -12,7 +12,6 @@ TODO
     - fully custom deploy scripts
     - isolation
     - php versions?
-    - https
 - tear down sites when PR is closed
     - delete database
     - delete site

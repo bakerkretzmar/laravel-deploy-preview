@@ -1,7 +1,7 @@
 import { Forge, Server } from './forge.js';
 import { until } from './helpers.js';
 
-type ActionConfig = {
+type CreateConfig = {
   name: string;
   repository: string;
   servers: Array<{ id: number; domain: string }>;
@@ -11,11 +11,19 @@ type ActionConfig = {
   local?: boolean;
 };
 
+type DestroyConfig = {
+  name: string;
+  servers: Array<{ id: number; domain: string }>;
+  info?: Function;
+  debug?: Function;
+  local?: boolean;
+};
+
 type DeployPreview = {
   url: string;
 };
 
-export async function run({
+export async function createPreview({
   name,
   repository,
   servers,
@@ -23,7 +31,7 @@ export async function run({
   info = console.log,
   debug = console.log,
   local = false,
-}: ActionConfig): Promise<DeployPreview> {
+}: CreateConfig): Promise<DeployPreview> {
   debug(`Loading server with ID ${servers[0].id}`);
   const server = await Server.fetch(servers[0].id, servers[0].domain);
   // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
@@ -57,7 +65,7 @@ export async function run({
     info('Updated .env file!');
 
     info('Setting up scheduler');
-    await site.enableScheduler();
+    await site.installScheduler();
     info('Scheduled job command set up!');
 
     if (afterDeploy) {
@@ -80,5 +88,31 @@ export async function run({
     await site.ensureCertificateActivated();
 
     return { url: `http://${site.name}` };
+  }
+}
+
+export async function destroyPreview({
+  name,
+  servers,
+  info = console.log,
+  debug = console.log,
+}: DestroyConfig): Promise<void> {
+  debug(`Loading server with ID ${servers[0].id}`);
+  const server = await Server.fetch(servers[0].id, servers[0].domain);
+
+  debug(`Loading sites for server ${server.id}`);
+  await server.loadSites();
+
+  debug(`Checking for site named '${name}'`);
+  const site = server.sites.find((site) => site.name === `${name}.${server.domain}`);
+
+  if (site) {
+    info('Site exists');
+
+    site.uninstallScheduler();
+
+    site.delete();
+
+    site.deleteDatabase(name.replace(/-/g, '_').replace(/[^\w_]/g, ''));
   }
 }
