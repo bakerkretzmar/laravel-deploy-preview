@@ -27,7 +27,16 @@ Forge.setToken(core.getInput('forge-token', { required: true }));
 
 const afterDeploy = core.getInput('after-deploy', { required: false });
 
-const payload = github.context.payload as PullRequestEvent;
+const pr = github.context.payload as PullRequestEvent;
+
+const octokit = github.getOctokit(core.getInput('github-token', { required: true }));
 
 // TODO make a type for all this input
-await run(payload.pull_request.head.ref, payload.repository.full_name, servers, afterDeploy);
+const deploy = await run(pr.pull_request.head.ref, pr.repository.full_name, servers, afterDeploy);
+
+octokit.rest.issues.createComment({
+  owner: pr.repository.owner.login,
+  repo: pr.repository.name,
+  issue_number: pr.number,
+  body: deploy.url,
+});

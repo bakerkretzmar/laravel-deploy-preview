@@ -13,9 +13,14 @@ todo
     - queues
     - other kinds of databases
     - custom deploy scripts
-    - scheduler
     - isolation
     - php versions?
+    - https
+- tear down sites when PR is closed
+    - delete database
+    - delete site
+    - delete job
+    - queues??
 
 security
 - HUGE warning about automatically running code from rando PRs

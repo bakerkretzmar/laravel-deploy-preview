@@ -2,12 +2,16 @@ import { Forge, Server } from './forge.js';
 import { InputServer } from './types.js';
 import { retryUntil } from './helpers.js';
 
+type Deploy = {
+  url: string;
+};
+
 export async function run(
   name: string,
   repository: string,
   servers: InputServer[],
   afterDeploy: string = ''
-): Promise<boolean> {
+): Promise<Deploy> {
   const server = await Server.create(servers[0].id, servers[0].domain);
   // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
   await server.loadSites();
@@ -69,7 +73,7 @@ export async function run(
     console.log('Site deployed!');
 
     console.log(site);
-  }
 
-  return true;
+    return { url: `http://${site.name}` };
+  }
 }

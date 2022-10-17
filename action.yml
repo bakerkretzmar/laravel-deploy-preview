@@ -4,6 +4,10 @@ inputs:
   forge-token:
     description: Laravel Forge API token.
     required: true
+  github-token:
+    description: GitHub token to create an authenticated Octokit client.
+    required: false
+    default: ${{ github.token }}
   servers:
     description: List of Forge servers to use for deploy previews.
     required: true
