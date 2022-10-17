@@ -1,14 +1,15 @@
-import * as dotenv from 'dotenv';
+import { config } from 'dotenv';
 import { Forge } from './forge.js';
 import { run } from './action.js';
 
-dotenv.config();
+config();
 
 Forge.setToken(process.env.FORGE_TOKEN);
 
-await run(
-  String(Date.now()),
-  'bakerkretzmar/deploy-preview-app',
-  [{ id: 600058, domain: 'bee.limo' }],
-  'npm ci && npm run build'
-);
+await run({
+  name: String(Date.now()),
+  repository: 'bakerkretzmar/deploy-preview-app',
+  servers: [{ id: 600058, domain: 'bee.limo' }],
+  afterDeploy: 'npm ci && npm run build',
+  local: true,
+});

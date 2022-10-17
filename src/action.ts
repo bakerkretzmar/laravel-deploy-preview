@@ -1,84 +1,74 @@
 import { Forge, Server } from './forge.js';
-import { InputServer } from './types.js';
-import { retryUntil } from './helpers.js';
+import { until } from './helpers.js';
 
-type Deploy = {
+type ActionConfig = {
+  name: string;
+  repository: string;
+  servers: Array<{ id: number; domain: string }>;
+  afterDeploy?: string;
+  info?: Function;
+  debug?: Function;
+  local?: boolean;
+};
+
+type DeployPreview = {
   url: string;
 };
 
-export async function run(
-  name: string,
-  repository: string,
-  servers: InputServer[],
-  afterDeploy: string = ''
-): Promise<Deploy> {
-  const server = await Server.create(servers[0].id, servers[0].domain);
+export async function run({
+  name,
+  repository,
+  servers,
+  afterDeploy = '',
+  info = console.log,
+  debug = console.log,
+  local = false,
+}: ActionConfig): Promise<DeployPreview> {
+  debug(`Loading server with ID ${servers[0].id}`);
+  const server = await Server.fetch(servers[0].id, servers[0].domain);
   // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
+  debug(`Loading sites for server ${server.id}`);
   await server.loadSites();
 
+  debug(`Checking for site named '${name}'`);
   const extantSite = server.sites.find((site) => site.name === name);
 
   if (extantSite) {
     // re-use existing site
-    console.log('Site exists');
+    info('Site exists');
   } else {
-    console.log('Creating new site');
-
     const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
+    debug(`Sanitized database name: '${database}'`);
 
+    info(`Creating new deploy preview site named '${name}'`);
     const site = await server.createSite(name, database);
+    info('Site created!');
 
-    // TODO site.waitUntilInstalled()
-    // no, actually just do this inside createSite
-    await retryUntil(
-      () => site.status !== 'installing',
-      async () => await site.refetch()
-    );
-    console.log('Site installed!');
+    info(`Installing '${repository}' Git repository in site`);
+    await site.installRepository(repository, local ? 'main' : name);
+    info('Repository installed!');
 
-    console.log('Creating new Git project');
-    // TODO name, not 'main'
-    await site.createProject('main', repository);
-    await retryUntil(
-      () => site.repository_status !== 'installing',
-      async () => await site.refetch()
-    );
-    console.log('Repository installed!');
+    info('Updating .env file');
+    await site.setEnvironmentVariable('DB_DATABASE', database);
+    info('Updated .env file!');
 
-    console.log('Updating .env file');
-    await site.updateEnvironmentVariable('DB_DATABASE', database);
-    console.log('Updated .env file!');
-
-    // Set up scheduler
-    // Doesn't need to wait
-    console.log('Setting up scheduler.');
+    info('Setting up scheduler');
     await site.enableScheduler();
-    console.log('Scheduler set up!');
+    info('Scheduled job command set up!');
 
     if (afterDeploy) {
-      console.log('Updating deploy script');
-      site.appendToDeployScript(afterDeploy);
-      console.log('Updated deploy script!');
+      info('Updating deploy script');
+      await site.appendToDeployScript(afterDeploy);
+      info('Updated deploy script!');
     }
 
-    // Doesn't need to wait
-    console.log('Enabling Quick Deploy');
+    info('Enabling Quick Deploy');
     await site.enableQuickDeploy();
-    await retryUntil(
-      () => site.quick_deploy !== false,
-      async () => await site.refetch()
-    );
-    console.log('Quick Deploy enabled!');
+    info('Quick Deploy enabled!');
 
-    console.log('Deploying site');
+    info('Deploying site');
     await site.deploy();
-    await retryUntil(
-      () => site.deployment_status === null,
-      async () => await site.refetch()
-    );
-    console.log('Site deployed!');
-
-    console.log(site);
+    info('Site deployed!');
 
     return { url: `http://${site.name}` };
   }

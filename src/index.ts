@@ -1,11 +1,10 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { PullRequestEvent } from '@octokit/webhooks-definitions/schema.js';
-import { InputServer } from './types.js';
 import { Forge } from './forge.js';
 import { run } from './action.js';
 
-const servers: InputServer[] = core.getMultilineInput('servers', { required: true }).map((line) => {
+const servers = core.getMultilineInput('servers', { required: true }).map((line) => {
   core.debug(`Parsing server input line: ${line}`);
   try {
     const [domain, id] = line.split(' ');
@@ -31,12 +30,18 @@ const pr = github.context.payload as PullRequestEvent;
 
 const octokit = github.getOctokit(core.getInput('github-token', { required: true }));
 
-// TODO make a type for all this input
-const deploy = await run(pr.pull_request.head.ref, pr.repository.full_name, servers, afterDeploy);
+const preview = await run({
+  name: pr.pull_request.head.ref,
+  repository: pr.repository.full_name,
+  servers,
+  afterDeploy,
+  info: core.info,
+  debug: core.debug,
+});
 
 octokit.rest.issues.createComment({
   owner: pr.repository.owner.login,
   repo: pr.repository.name,
   issue_number: pr.number,
-  body: deploy.url,
+  body: preview.url,
 });

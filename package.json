@@ -26,7 +26,6 @@
   "devDependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
-    "@actions/http-client": "^2.0.1",
     "@octokit/webhooks-definitions": "^3.67.3",
     "@types/node": "^18.11.0",
     "@vercel/ncc": "^0.34.0",
@@ -37,6 +36,7 @@
   },
   "prettier": {
     "printWidth": 120,
+    "quoteProps": "consistent",
     "singleQuote": true,
     "tabWidth": 2,
     "trailingComma": "es5"
