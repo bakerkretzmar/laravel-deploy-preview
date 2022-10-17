@@ -152,7 +152,7 @@ export class Forge {
   }
 
   private static put(path: string, data: object) {
-    return this.client().get(path, data);
+    return this.client().put(path, data);
   }
 }
 
