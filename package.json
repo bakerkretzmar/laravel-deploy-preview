@@ -1,18 +1,10 @@
 {
-  "name": "@tighten/deploy-preview",
+  "name": "tighten/laravel-deploy-preview",
   "version": "0.1.0",
   "license": "MIT",
   "description": "",
-  "keywords": [],
-  "author": "Jacob Baker-Kretzmar",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bakerkretzmar/deploy-preview.git"
-  },
-  "bugs": {
-    "url": "https://github.com/bakerkretzmar/deploy-preview/issues"
-  },
-  "homepage": "https://github.com/bakerkretzmar/deploy-preview#readme",
+  "author": "Jacob Baker-Kretzmar <jacob@tighten.com>",
+  "private": true,
   "scripts": {
     "debug": "ncc run src/debug.ts",
     "test": "vitest",

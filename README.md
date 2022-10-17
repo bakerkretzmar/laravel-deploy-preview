@@ -1,4 +1,4 @@
-# Laravel Deploy Preview
+# Laravel Deploy Preview Action
 
 TODO
 - support vapor
