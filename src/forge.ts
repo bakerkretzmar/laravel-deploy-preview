@@ -22,6 +22,12 @@ type JobPayload = {
   status: string;
 };
 
+type CertificatePayload = {
+  id: number;
+  status: string;
+  active: boolean;
+};
+
 export class Forge {
   static #token: string;
   static #client?: AxiosInstance;
@@ -111,6 +117,15 @@ export class Forge {
     return (await this.post(`servers/${server}/sites/${site}/deployment/deploy`)).data;
   }
 
+  static async obtainCertificate(server: number, site: number, domain: string): Promise<CertificatePayload> {
+    return (await this.post(`servers/${server}/sites/${site}/certificates/letsencrypt`, { domains: [domain] })).data
+      .certificate;
+  }
+
+  static async getCertificate(server: number, site: number, certificate: number): Promise<CertificatePayload> {
+    return (await this.get(`servers/${server}/sites/${site}/certificates/${certificate}`)).data.certificate;
+  }
+
   static setToken(token: string): void {
     this.#token = token;
   }
@@ -181,6 +196,8 @@ export class Site {
   quick_deploy: boolean | null;
   deployment_status: string | null;
 
+  certificate_id: number;
+
   constructor(data: SitePayload) {
     this.id = data.id;
     this.server_id = data.server_id;
@@ -193,8 +210,10 @@ export class Site {
 
   async installRepository(repository: string, branch: string): Promise<void> {
     await Forge.createGitProject(this.server_id, this.id, repository, branch);
+    // TODO error handling here could throw if this goes back to `null` after 'installing',
+    // because that probably means it failed
     await until(
-      () => this.repository_status === 'installed',
+      () => this.repository_status !== 'installing',
       async () => this.refetch(),
       3
     );
@@ -217,6 +236,18 @@ export class Site {
     const script = await Forge.getDeployScript(this.server_id, this.id);
     // TODO does this take time to 'install'? If so what do we wait for?
     console.log(await Forge.updateDeploymentScript(this.server_id, this.id, `${script}\n${append}`));
+  }
+
+  async installCertificate(): Promise<void> {
+    this.certificate_id = (await Forge.obtainCertificate(this.server_id, this.id, this.name)).id;
+  }
+
+  async ensureCertificateActivated(): Promise<void> {
+    let certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
+    await until(
+      () => certificate.active,
+      async () => (certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id))
+    );
   }
 
   async enableQuickDeploy(): Promise<void> {

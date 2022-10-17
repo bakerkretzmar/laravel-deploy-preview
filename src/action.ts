@@ -44,6 +44,10 @@ export async function run({
     const site = await server.createSite(name, database);
     info('Site created!');
 
+    info('Obtaining SSL certificate');
+    await site.installCertificate();
+    info('SSL certificate obtained!');
+
     info(`Installing '${repository}' Git repository in site`);
     await site.installRepository(repository, local ? 'main' : name);
     info('Repository installed!');
@@ -69,6 +73,11 @@ export async function run({
     info('Deploying site');
     await site.deploy();
     info('Site deployed!');
+
+    info('Cleaning up...');
+
+    debug('Ensuring SSL certificate activated');
+    await site.ensureCertificateActivated();
 
     return { url: `http://${site.name}` };
   }
