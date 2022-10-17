@@ -2,7 +2,12 @@ import { Forge, Server } from './forge.js';
 import { InputServer } from './types.js';
 import { retryUntil } from './helpers.js';
 
-export async function run(name: string, repository: string, servers: InputServer[]): Promise<boolean> {
+export async function run(
+  name: string,
+  repository: string,
+  servers: InputServer[],
+  afterDeploy: string = ''
+): Promise<boolean> {
   const server = await Server.create(servers[0].id, servers[0].domain);
   // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
   await server.loadSites();
@@ -18,7 +23,6 @@ export async function run(name: string, repository: string, servers: InputServer
     const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
 
     const site = await server.createSite(name, database);
-    console.log(site);
 
     // TODO site.waitUntilInstalled()
     // no, actually just do this inside createSite
@@ -42,6 +46,11 @@ export async function run(name: string, repository: string, servers: InputServer
     console.log('Updated .env file!');
 
     // Tweak deployment script?
+    if (afterDeploy) {
+      console.log('Updating deploy script');
+      site.appendToDeployScript(afterDeploy);
+      console.log('Updated deploy script!');
+    }
 
     console.log('Enabling Quick Deploy');
     await site.enableQuickDeploy();
@@ -59,7 +68,7 @@ export async function run(name: string, repository: string, servers: InputServer
     );
     console.log('Site deployed!');
 
-    console.log({ site });
+    console.log(site);
   }
 
   return true;

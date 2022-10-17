@@ -16,3 +16,6 @@ todo
     - scheduler
     - isolation
     - php versions?
+
+security
+- HUGE warning about automatically running code from rando PRs

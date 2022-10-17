@@ -71,6 +71,22 @@ export class Forge {
     return response.result.site;
   }
 
+  static async deployScript(server: number, site: number): Promise<string> {
+    const response: HttpClientResponse = await this.client().get(
+      this.url(`servers/${server}/sites/${site}/deployment/script`)
+    );
+    return response.readBody();
+  }
+
+  static async setDeployScript(server: number, site: number, content: string): Promise<void> {
+    const response: Response<any> = await this.client().putJson(
+      this.url(`servers/${server}/sites/${site}/deployment/script`),
+      {
+        content,
+      }
+    );
+  }
+
   static async autoDeploy(server: number | string, site: number | string): Promise<void> {
     await this.client().postJson(this.url(`servers/${server}/sites/${site}/deployment`), {});
   }
@@ -168,6 +184,11 @@ export class Site {
   async updateEnvironmentVariable(name: string, value: string): Promise<void> {
     const env = await Forge.dotEnv(this.server_id, this.id);
     await Forge.setDotEnv(this.server_id, this.id, env.replace(new RegExp(`/${name}=.*?\n/`), `${name}=${value}\n`));
+  }
+
+  async appendToDeployScript(append: string): Promise<void> {
+    const script = await Forge.deployScript(this.server_id, this.id);
+    await Forge.setDeployScript(this.server_id, this.id, `${script}\n${append}`);
   }
 
   async enableQuickDeploy(): Promise<void> {

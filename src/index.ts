@@ -25,6 +25,9 @@ const servers: InputServer[] = core.getMultilineInput('servers', { required: tru
 
 Forge.setToken(core.getInput('forge-token', { required: true }));
 
+const afterDeploy = core.getInput('after-deploy', { required: false });
+
 const payload = github.context.payload as PullRequestEvent;
 
-await run(payload.pull_request.head.ref, payload.repository.full_name, servers);
+// TODO make a type for all this input
+await run(payload.pull_request.head.ref, payload.repository.full_name, servers, afterDeploy);
