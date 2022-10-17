@@ -20,6 +20,8 @@ TODO
     - queues??
 - security
     - HUGE warning about automatically running code from rando PRs
+    - add note about this being destructive -- don't put other important stuff on the same servers
+    - add note about using a new forge api key specifically for this action so it can be revoked/rotated easily
 
 ## Prerequisites
 
@@ -27,6 +29,12 @@ TODO
 - Wildcard subdomain pointing at Forge server
 
 ## Installation & Usage
+
+```yml
+- uses: tighten/laravel-deploy-preview@v1
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+```
 
 ## Development
 
