@@ -33,15 +33,15 @@ export class Forge {
   static #client?: AxiosInstance;
 
   static async listServers(): Promise<ServerPayload[]> {
-    return (await this.get('servers')).data;
+    return (await this.get('servers')).data.servers;
   }
 
   static async getServer(server: number): Promise<ServerPayload> {
-    return (await this.get(`servers/${server}`)).data;
+    return (await this.get(`servers/${server}`)).data.server;
   }
 
   static async listSites(server: number): Promise<SitePayload[]> {
-    return (await this.get(`servers/${server}/sites`)).data;
+    return (await this.get(`servers/${server}/sites`)).data.sites;
   }
 
   static async createSite(server: number, name: string, database: string): Promise<SitePayload> {
@@ -52,11 +52,11 @@ export class Forge {
         directory: '/public',
         database,
       })
-    ).data;
+    ).data.site;
   }
 
   static async getSite(server: number, site: number): Promise<SitePayload> {
-    return (await this.get(`servers/${server}/sites/${site}`)).data;
+    return (await this.get(`servers/${server}/sites/${site}`)).data.site;
   }
 
   static async createGitProject(
@@ -72,21 +72,20 @@ export class Forge {
         repository,
         branch,
       })
-    ).data;
+    ).data.site;
   }
 
   // Not positive this returns a SitePayload
   static async enableQuickDeploy(server: number, site: number): Promise<SitePayload> {
-    return (await this.post(`servers/${server}/sites/${site}/deployment`)).data;
+    return (await this.post(`servers/${server}/sites/${site}/deployment`)).data.site;
   }
 
   static async getDeployScript(server: number, site: number): Promise<string> {
     return (await this.get(`servers/${server}/sites/${site}/deployment/script`)).data;
   }
 
-  // Not positive this returns a SitePayload
-  static async updateDeploymentScript(server: number, site: number, content: string): Promise<SitePayload> {
-    return (await this.put(`servers/${server}/sites/${site}/deployment/script`, { content })).data;
+  static async updateDeployScript(server: number, site: number, content: string): Promise<void> {
+    await this.put(`servers/${server}/sites/${site}/deployment/script`, { content });
   }
 
   static async getEnvironmentFile(server: number, site: number): Promise<string> {
@@ -95,7 +94,7 @@ export class Forge {
 
   // Not positive this returns a SitePayload
   static async updateEnvironmentFile(server: number, site: number, content: string): Promise<SitePayload> {
-    return (await this.put(`servers/${server}/sites/${site}/env`, { content })).data;
+    return (await this.put(`servers/${server}/sites/${site}/env`, { content })).data.site;
   }
 
   static async createScheduledJob(
@@ -110,11 +109,11 @@ export class Forge {
         frequency,
         user,
       })
-    ).data;
+    ).data.job;
   }
 
   static async deploy(server: number, site: number): Promise<SitePayload> {
-    return (await this.post(`servers/${server}/sites/${site}/deployment/deploy`)).data;
+    return (await this.post(`servers/${server}/sites/${site}/deployment/deploy`)).data.site;
   }
 
   static async obtainCertificate(server: number, site: number, domain: string): Promise<CertificatePayload> {
@@ -235,7 +234,7 @@ export class Site {
   async appendToDeployScript(append: string): Promise<void> {
     const script = await Forge.getDeployScript(this.server_id, this.id);
     // TODO does this take time to 'install'? If so what do we wait for?
-    console.log(await Forge.updateDeploymentScript(this.server_id, this.id, `${script}\n${append}`));
+    await Forge.updateDeployScript(this.server_id, this.id, `${script}\n${append}`);
   }
 
   async installCertificate(): Promise<void> {
