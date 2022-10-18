@@ -109,10 +109,16 @@ export async function destroyPreview({
   if (site) {
     info('Site exists');
 
-    site.uninstallScheduler();
+    info('Cleaning up scheduler');
+    await site.uninstallScheduler();
+    info('Scheduled job command uninstalled!');
 
-    site.delete();
+    info('Deleting site');
+    await site.delete();
+    info('Site deleted!');
 
-    site.deleteDatabase(name.replace(/-/g, '_').replace(/[^\w_]/g, ''));
+    info('Deleting database');
+    await site.deleteDatabase(name.replace(/-/g, '_').replace(/[^\w_]/g, ''));
+    info('Database deleted!');
   }
 }

@@ -64,12 +64,16 @@ export class Forge {
     return (await this.get(`servers/${server}/sites/${site}`)).data.site;
   }
 
+  static async deleteSite(server: number, site: number): Promise<void> {
+    await this.delete(`servers/${server}/sites/${site}`);
+  }
+
   static async listDatabases(server: number): Promise<DatabasePayload[]> {
-    return (await this.get(`server/${server}/databases`)).data.databases;
+    return (await this.get(`servers/${server}/databases`)).data.databases;
   }
 
   static async deleteDatabase(server: number, database: number): Promise<void> {
-    await this.delete(`server/${server}/databases/${database}`);
+    await this.delete(`servers/${server}/databases/${database}`);
   }
 
   static async createGitProject(
@@ -123,6 +127,14 @@ export class Forge {
         user,
       })
     ).data.job;
+  }
+
+  static async listScheduledJobs(server: number): Promise<JobPayload[]> {
+    return (await this.get(`servers/${server}/jobs`)).data.jobs;
+  }
+
+  static async deleteScheduledJob(server: number, job: number): Promise<void> {
+    await this.delete(`servers/${server}/jobs/${job}`);
   }
 
   static async deploy(server: number, site: number): Promise<SitePayload> {
@@ -240,7 +252,7 @@ export class Site {
     await Forge.updateEnvironmentFile(
       this.server_id,
       this.id,
-      env.replace(new RegExp(`/${name}=.*?\n/`), `${name}=${value}\n`)
+      env.replace(new RegExp(`${name}=.*?\n`), `${name}=${value}\n`)
     );
   }
 
@@ -249,7 +261,12 @@ export class Site {
   }
 
   async uninstallScheduler(): Promise<void> {
-    await Forge.createScheduledJob(this.server_id, `php /home/forge/${this.name}/artisan schedule:run`);
+    const jobs = await Forge.listScheduledJobs(this.server_id);
+    await Promise.all(
+      jobs
+        .filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command))
+        .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id))
+    );
   }
 
   async appendToDeployScript(append: string): Promise<void> {
@@ -290,7 +307,7 @@ export class Site {
   }
 
   async delete(): Promise<void> {
-    //
+    await Forge.deleteSite(this.server_id, this.id);
   }
 
   async refetch(): Promise<void> {
