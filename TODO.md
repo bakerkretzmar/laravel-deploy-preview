@@ -10,10 +10,8 @@
     - isolation
     - php versions?
 - tear down sites when PR is closed
-    - delete database
-    - delete site
-    - delete job
     - queues??
+    - default `pull_request` event doesn't trigger on close, add instructions for doing that manually or set up some other way to trigger cleanup
 - more deploy script customization (provide template, default, etc?)
 - security
     - HUGE warning about automatically running code from rando PRs

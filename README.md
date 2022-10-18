@@ -11,6 +11,8 @@
 - uses: tighten/laravel-deploy-preview@v1
   with:
     forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      example.com 123
 ```
 
 ## Development
