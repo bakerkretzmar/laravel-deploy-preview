@@ -9,7 +9,7 @@ Forge.setToken(process.env.FORGE_TOKEN);
 // console.log(await Forge.getCertificate(600058, 1780408, 1568289));
 // console.log(await Forge.getCertificate(600058, 1780408, 1568292));
 
-await destroyPreview({ name: '1666028021290', servers: [{ id: 600058, domain: 'bee.limo' }] });
+await destroyPreview({ name: '1666045449551', servers: [{ id: 600058, domain: 'bee.limo' }] });
 
 // await createPreview({
 //   name: String(Date.now()),

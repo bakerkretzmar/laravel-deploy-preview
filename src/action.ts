@@ -87,7 +87,7 @@ export async function createPreview({
     debug('Ensuring SSL certificate activated');
     await site.ensureCertificateActivated();
 
-    return { url: `http://${site.name}` };
+    return { url: `https://${site.name}` };
   }
 }
 

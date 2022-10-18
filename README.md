@@ -17,6 +17,7 @@ TODO
     - delete site
     - delete job
     - queues??
+- more deploy script customization (provide template, default, etc?)
 - security
     - HUGE warning about automatically running code from rando PRs
     - add note about this being destructive -- don't put other important stuff on the same servers
