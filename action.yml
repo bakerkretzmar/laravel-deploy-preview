@@ -1,5 +1,5 @@
-name: Deploy Preview
-description: Deploy a PR preview site to Forge.
+name: Laravel Deploy Preview
+description: Deploy a PR preview site.
 inputs:
   forge-token:
     description: Laravel Forge API token.
@@ -9,7 +9,7 @@ inputs:
     required: false
     default: ${{ github.token }}
   servers:
-    description: List of Forge servers to use for deploy previews.
+    description: 'List of Forge servers to use for deploy previews. Each line must contain a domain name and a Forge server ID separated by a space. Note: currently only supports a single server.'
     required: true
   after-deploy:
     # 'post-deploy'? 'command'?

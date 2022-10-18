@@ -1,13 +1,12 @@
 {
   "name": "tighten/laravel-deploy-preview",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "MIT",
-  "description": "",
+  "description": "GitHub action to deploy PR preview sites for Laravel apps.",
   "author": "Jacob Baker-Kretzmar <jacob@tighten.com>",
   "private": true,
   "scripts": {
     "debug": "ncc run src/debug.ts",
-    "test": "vitest",
     "build": "tsc",
     "compile": "ncc build --minify --source-map --license licenses.txt",
     "package": "npm run build && npm run compile",
@@ -25,6 +24,9 @@
     "dotenv": "^16.0.3",
     "prettier": "^2.7.1",
     "typescript": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=16"
   },
   "prettier": {
     "printWidth": 120,
