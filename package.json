@@ -7,10 +7,7 @@
   "private": true,
   "scripts": {
     "debug": "ncc run src/debug.ts",
-    "build": "tsc",
-    "compile": "ncc build --minify --source-map --license licenses.txt",
-    "package": "npm run build && npm run compile",
-    "build-app": "npm run build && ncc build --out ../deploy-preview-app/dist && rsync -a action.yml ../deploy-preview-app"
+    "build": "tsc && ncc build --minify --source-map --license licenses.txt"
   },
   "type": "module",
   "main": "lib/index.js",
