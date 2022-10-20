@@ -67,7 +67,7 @@ Each server must include both a domain name and a server ID, separated by a spac
 
 If this input parameter contains multiple lines, each line will be treated as a different Forge server, and the action will deploy to whichever server has the fewest sites already running on it.
 
-> **Note**: The action currently only deploys to one server; if you list multiple servers, it will use the server with the lowest load, not all of the servers.
+> **Note**: The action currently only deploys to one server; if you list multiple servers, it will use the first one.
 
 Example:
 
