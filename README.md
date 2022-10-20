@@ -11,7 +11,7 @@
 
 ## About
 
-`tighten/laravel-deploy-preview` is a GitHub Action to automatically deploy new Laravel app instances to Laravel Forge or Vapor (planned). It's perfect for creating PR preview environments that are isolated, publicly accessible, and closely resemble your production environment, to preview and test your changes.
+`tighten/laravel-deploy-preview` is a GitHub Action to automatically deploy new Laravel app instances to Laravel Forge (current) or Vapor (planned). It's perfect for creating PR preview environments that are isolated, publicly accessible (or privately, depending on your server's settings), and closely resemble your production environment, to preview and test your changes.
 
 When you open a PR and this action runs for the first time, it will:
 
@@ -31,7 +31,7 @@ Before adding this action to your workflows, make sure you have:
 
 ## Usage
 
-**This action has direct access to your Laravel Forge account and should only be used in trusted contexts.** Anyone who can push to a GitHub repository using this action will be able to execute code on the connected Forge servers.
+> **Warning**: This action has direct access to your Laravel Forge account and should only be used in trusted contexts. Anyone who can push to a GitHub repository using this action will be able to execute code on the connected Forge servers.
 
 Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `tighten/laravel-deploy-preview` inside any workflow:
 
@@ -47,7 +47,7 @@ Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actio
 
 #### `forge-token` (required)
 
-The `forge-token` input parameter accepts your Forge API token, which the action uses to communicate with Laravel Forge to create sites and other resources. **Store this value in an encrypted secret, do not paste it directly into your workflow file.**
+The `forge-token` input parameter accepts your Forge API token, which the action uses to communicate with Laravel Forge to create sites and other resources. **Store this value in an encrypted secret; do not paste it directly into your workflow file.**
 
 Example:
 
@@ -67,7 +67,7 @@ Each server must include both a domain name and a server ID, separated by a spac
 
 If this input parameter contains multiple lines, each line will be treated as a different Forge server, and the action will deploy to whichever server has the fewest sites already running on it.
 
-> **Note**: The action currently only deploys to one server, if you list multiple servers it will use the first one.
+> **Note**: The action currently only deploys to one server; if you list multiple servers, it will use the server with the lowest load, not all of the servers.
 
 Example:
 
