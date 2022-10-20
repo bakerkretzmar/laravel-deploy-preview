@@ -65,9 +65,7 @@ The `servers` input parameter accepts a list of Forge servers to deploy to.
 
 Each server must include both a domain name and a server ID, separated by a space. The domain name should be the wildcard subdomain pointing at that server (without the wildcard part). For example, if your wildcard subdomain is `*.qa-1.acme.dev` and your Forge server ID is `60041`, set this input parameter to `qa-1.acme.dev 60041`.
 
-If this input parameter contains multiple lines, each line will be treated as a different Forge server, and the action will deploy to whichever server has the fewest sites already running on it.
-
-> **Note**: The action currently only deploys to one server; if you list multiple servers, it will use the first one.
+If this input parameter contains multiple lines, each line will be treated as a different Forge server. We plan to support deploying to whichever server has the fewest sites already running on it, but the action currently only deploys to one server; if you list multiple servers, it will use the first one.
 
 Example:
 
