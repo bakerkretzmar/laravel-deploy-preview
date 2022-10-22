@@ -1,6 +1,7 @@
 * text=auto
 
 /dist/** linguist-generated
+.env.example linguist-documentation
 
 /.gitattributes export-ignore
 /.gitignore export-ignore
