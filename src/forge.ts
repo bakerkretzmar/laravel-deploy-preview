@@ -159,7 +159,7 @@ export class Forge {
       this.#client = axios.create({
         baseURL: 'https://forge.laravel.com/api/v1/',
         headers: {
-          'User-Agent': '@tighten/laravel-deploy-preview',
+          'User-Agent': 'tighten/laravel-deploy-preview@v1',
           'Authorization': `Bearer ${this.#token}`,
         },
       });
