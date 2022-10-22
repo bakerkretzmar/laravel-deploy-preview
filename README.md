@@ -40,7 +40,8 @@ For the action to be able to clean up preview sites and other resources after a 
 ```yaml
 # deploy-preview.yml
 on:
-  pull_request: [opened, closed]
+  pull_request:
+    types: [opened, closed]
 jobs:
   deploy-preview:
     runs-on: ubuntu-latest
