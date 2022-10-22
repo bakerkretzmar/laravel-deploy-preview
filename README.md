@@ -33,14 +33,24 @@ Before adding this action to your workflows, make sure you have:
 
 > **Warning**: This action has direct access to your Laravel Forge account and should only be used in trusted contexts. Anyone who can push to a GitHub repository using this action will be able to execute code on the connected Forge servers.
 
-Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `tighten/laravel-deploy-preview` inside any workflow:
+Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `tighten/laravel-deploy-preview` inside any workflow.
+
+For the action to be able to clean up preview sites and other resources after a PR is merged, it has to be triggered on the pull request "closed" event. By default, GitHub's `pull_request` event does _not_ trigger a workflow run when its activity type is `closed`, so you may need to place this action in its own workflow file that specifies that event type:
 
 ```yaml
-- uses: tighten/laravel-deploy-preview@v1
-  with:
-    forge-token: ${{ secrets.FORGE_TOKEN }}
-    servers: |
-      qa-1.acme.dev 60041
+# deploy-preview.yml
+on:
+  pull_request: [opened, closed]
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: tighten/laravel-deploy-preview@v1
+        with:
+          forge-token: ${{ secrets.FORGE_TOKEN }}
+          servers: |
+            qa-1.acme.dev 60041
 ```
 
 ### Inputs
