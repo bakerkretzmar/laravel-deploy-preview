@@ -1,3 +1,5 @@
+![](/banner.png)
+
 <h1 align="center">tighten/laravel-deploy-preview</h1>
 
 <p align="center">
