@@ -106,6 +106,23 @@ Example:
     after-deploy: npm ci && npm run build
 ```
 
+#### `environment`
+
+The `environment` input parameter allows you to add and update environment variables in the preview site.
+
+Example:
+
+```yaml
+- uses: tighten/laravel-deploy-preview@v1
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    environment: |
+      APP_ENV=preview
+      TELESCOPE_ENABLED=false
+```
+
 ## Development
 
 This action is loosely based on GitHub's [hello-world-javascript-action](https://github.com/actions/hello-world-javascript-action) and [typescript-action](https://github.com/actions/typescript-action) templates. It's written in TypeScript and compiled with [`ncc`](https://github.com/vercel/ncc) into a single JavaScript file.

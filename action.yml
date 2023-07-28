@@ -12,11 +12,11 @@ inputs:
     description: 'List of Forge servers to use for deploy previews. Each line must contain a domain name and a Forge server ID separated by a space. Note: currently only supports a single server.'
     required: true
   after-deploy:
-    # 'post-deploy'? 'command'?
     description: Shell script to append and run after the default Forge deploy script. E.g. `npm ci && npm run build`.
     required: false
-  # env variables
-  #
+  environment:
+    description: Environment variables to add or update on the preview site.
+    required: false
 runs:
   using: node16
   main: dist/index.js

@@ -26,6 +26,11 @@ Forge.setToken(core.getInput('forge-token', { required: true }));
 
 const afterDeploy = core.getInput('after-deploy', { required: false });
 
+const environment = core.getMultilineInput('environment', { required: false }).reduce((all, line) => {
+  const [key, value] = line.split('=');
+  return { ...all, [key]: value };
+}, {});
+
 const pr = github.context.payload as PullRequestEvent;
 
 if (pr.action === 'opened') {
@@ -36,6 +41,7 @@ if (pr.action === 'opened') {
     repository: pr.repository.full_name,
     servers,
     afterDeploy,
+    environment,
     info: core.info,
     debug: core.debug,
   });

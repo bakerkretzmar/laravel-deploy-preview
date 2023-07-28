@@ -6,6 +6,7 @@ type CreateConfig = {
   repository: string;
   servers: Array<{ id: number; domain: string }>;
   afterDeploy?: string;
+  environment?: Record<string, string>;
   info?: Function;
   debug?: Function;
   local?: boolean;
@@ -28,6 +29,7 @@ export async function createPreview({
   repository,
   servers,
   afterDeploy = '',
+  environment = {},
   info = console.log,
   debug = console.log,
   local = false,
@@ -61,7 +63,10 @@ export async function createPreview({
     info('Repository installed!');
 
     info('Updating .env file');
-    await site.setEnvironmentVariable('DB_DATABASE', database);
+    await site.setEnvironmentVariables({
+      DB_DATABASE: database,
+      ...environment,
+    });
     info('Updated .env file!');
 
     info('Setting up scheduler');

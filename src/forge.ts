@@ -247,13 +247,16 @@ export class Site {
     );
   }
 
-  async setEnvironmentVariable(name: string, value: string): Promise<void> {
-    const env = await Forge.getEnvironmentFile(this.server_id, this.id);
-    await Forge.updateEnvironmentFile(
-      this.server_id,
-      this.id,
-      env.replace(new RegExp(`${name}=.*?\n`), `${name}=${value}\n`)
-    );
+  async setEnvironmentVariables(variables: Record<string, string>): Promise<void> {
+    let env = await Forge.getEnvironmentFile(this.server_id, this.id);
+    Object.entries(variables).map(([key, value]) => {
+      if (new RegExp(`${key}=`).test(env)) {
+        env = env.replace(new RegExp(`${key}=.*`), `${key}=${value}`);
+      } else {
+        env += `\n${key}=${value}\n`;
+      }
+    });
+    await Forge.updateEnvironmentFile(this.server_id, this.id, env);
   }
 
   async installScheduler(): Promise<void> {
