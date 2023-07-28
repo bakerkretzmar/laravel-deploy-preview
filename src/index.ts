@@ -10,7 +10,7 @@ const servers = core.getMultilineInput('servers', { required: true }).map((line)
     const [domain, id] = line.split(' ');
     if (!domain || !id) {
       throw new Error(
-        `Each line must contain a domain name and a Forge server ID separated by one space. Found '${line}'.`
+        `Each line must contain a domain name and a Forge server ID separated by one space. Found '${line}'.`,
       );
     }
     if (/\D/.test(id)) {

@@ -80,7 +80,7 @@ export class Forge {
     server: number,
     site: number,
     repository: string,
-    branch: string
+    branch: string,
   ): Promise<SitePayload> {
     return (
       await this.post(`servers/${server}/sites/${site}/git`, {
@@ -118,7 +118,7 @@ export class Forge {
     server: number,
     command: string,
     frequency: string = 'minutely',
-    user: string = 'forge'
+    user: string = 'forge',
   ): Promise<JobPayload> {
     return (
       await this.post(`servers/${server}/jobs`, {
@@ -209,7 +209,7 @@ export class Server {
     const site = new Site(await Forge.createSite(this.id, `${name}.${this.domain}`, database));
     await until(
       () => site.status === 'installed',
-      async () => await site.refetch()
+      async () => await site.refetch(),
     );
     return site;
   }
@@ -243,7 +243,7 @@ export class Site {
     await until(
       () => this.repository_status !== 'installing',
       async () => this.refetch(),
-      3
+      3,
     );
   }
 
@@ -268,7 +268,7 @@ export class Site {
     await Promise.all(
       jobs
         .filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command))
-        .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id))
+        .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id)),
     );
   }
 
@@ -286,7 +286,7 @@ export class Site {
     let certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
     await until(
       () => certificate.active,
-      async () => (certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id))
+      async () => (certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id)),
     );
   }
 
@@ -298,7 +298,7 @@ export class Site {
     await Forge.deploy(this.server_id, this.id);
     await until(
       () => this.deployment_status === null,
-      async () => await this.refetch()
+      async () => await this.refetch(),
     );
   }
 

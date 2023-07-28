@@ -6,10 +6,13 @@ config();
 
 Forge.setToken(process.env.FORGE_TOKEN);
 
-// console.log(await Forge.getCertificate(600058, 1780408, 1568289));
-// console.log(await Forge.getCertificate(600058, 1780408, 1568292));
+const site = new Site(await Forge.getSite(469678, 1351999));
+await site.setEnvironmentVariables({
+  FOO: 'bar',
+  BAZ: '2',
+});
 
-await destroyPreview({ name: '1666045449551', servers: [{ id: 600058, domain: 'bee.limo' }] });
+// await destroyPreview({ name: '1666045449551', servers: [{ id: 600058, domain: 'bee.limo' }] });
 
 // await createPreview({
 //   name: String(Date.now()),
