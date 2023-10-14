@@ -1,6 +1,6 @@
 ![](/banner.png)
 
-<h1 align="center">tighten/laravel-deploy-preview</h1>
+<h1 align="center">laravel-deploy-preview</h1>
 
 <p align="center">
     <strong>A GitHub Action to create on-demand preview environments for Laravel apps.</strong>
@@ -8,12 +8,12 @@
 
 <p align="center">
     <!-- TODO test status -->
-    <a href="https://github.com/tighten/laravel-deploy-preview/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-darkcyan.svg" alt="MIT License"></a>
+    <a href="https://github.com/bakerkretzmar/laravel-deploy-preview/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-darkcyan.svg" alt="MIT License"></a>
 </p>
 
 ## About
 
-`tighten/laravel-deploy-preview` is a GitHub Action to automatically deploy new Laravel app instances to Laravel Forge (current) or Vapor (planned). It's perfect for creating PR preview environments that are isolated, publicly accessible (or privately, depending on your server's settings), and closely resemble your production environment, to preview and test your changes.
+`bakerkretzmar/laravel-deploy-preview` is a GitHub Action to automatically deploy new Laravel app instances to Laravel Forge (current) or Vapor (planned). It's perfect for creating PR preview environments that are isolated, publicly accessible (or privately, depending on your server's settings), and closely resemble your production environment, to preview and test your changes.
 
 When you open a PR and this action runs for the first time, it will:
 
@@ -35,7 +35,7 @@ Before adding this action to your workflows, make sure you have:
 
 > **Warning**: This action has direct access to your Laravel Forge account and should only be used in trusted contexts. Anyone who can push to a GitHub repository using this action will be able to execute code on the connected Forge servers.
 
-Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `tighten/laravel-deploy-preview` inside any workflow.
+Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `bakerkretzmar/laravel-deploy-preview` inside any workflow.
 
 For the action to be able to clean up preview sites and other resources after a PR is merged, it has to be triggered on the pull request "closed" event. By default, GitHub's `pull_request` event does _not_ trigger a workflow run when its activity type is `closed`, so you may need to place this action in its own workflow file that specifies that event type:
 
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: tighten/laravel-deploy-preview@v1
+      - uses: bakerkretzmar/laravel-deploy-preview@v2
         with:
           forge-token: ${{ secrets.FORGE_TOKEN }}
           servers: |
@@ -65,7 +65,7 @@ The `forge-token` input parameter accepts your Forge API token, which the action
 Example:
 
 ```yaml
-- uses: tighten/laravel-deploy-preview@v1
+- uses: bakerkretzmar/laravel-deploy-preview@v2
   with:
     forge-token: ${{ secrets.FORGE_TOKEN }}
     servers: |
@@ -83,7 +83,7 @@ If this input parameter contains multiple lines, each line will be treated as a 
 Example:
 
 ```yaml
-- uses: tighten/laravel-deploy-preview@v1
+- uses: bakerkretzmar/laravel-deploy-preview@v2
   with:
     forge-token: ${{ secrets.FORGE_TOKEN }}
     servers: |
@@ -98,7 +98,7 @@ The `after-deploy` input parameter allows you to append additional commands to b
 Example:
 
 ```yaml
-- uses: tighten/laravel-deploy-preview@v1
+- uses: bakerkretzmar/laravel-deploy-preview@v2
   with:
     forge-token: ${{ secrets.FORGE_TOKEN }}
     servers: |
@@ -113,7 +113,7 @@ The `environment` input parameter allows you to add and update environment varia
 Example:
 
 ```yaml
-- uses: tighten/laravel-deploy-preview@v1
+- uses: bakerkretzmar/laravel-deploy-preview@v2
   with:
     forge-token: ${{ secrets.FORGE_TOKEN }}
     servers: |
@@ -131,4 +131,4 @@ Run `npm run build` to compile a new version of the action for distribution.
 
 To run the action locally, create a `.env` file and add your Forge API token to it, then edit `src/debug.ts` to manually set the input values you want to use, and finally run `npm run debug`.
 
-When releasing a new version of the action, update the major version tag to point to the same commit as the latest patch release. This is what allows users to use `tighten/laravel-deploy-preview@v1` in their workflows instead of `tighten/laravel-deploy-preview@v1.0.2`. For example, after tagging and releasing `v1.0.2`, delete the `v1` tag locally, create it again pointing to the same commit as `v1.0.2`, and force push your tags with `git push -f --tags`.
+When releasing a new version of the action, update the major version tag to point to the same commit as the latest patch release. This is what allows users to use `bakerkretzmar/laravel-deploy-preview@v2` in their workflows instead of `bakerkretzmar/laravel-deploy-preview@v2.0.2`. For example, after tagging and releasing `v2.0.2`, delete the `v2` tag locally, create it again pointing to the same commit as `v2.0.2`, and force push your tags with `git push -f --tags`.

@@ -18,5 +18,5 @@ inputs:
     description: Environment variables to add or update on the preview site.
     required: false
 runs:
-  using: node16
+  using: node20
   main: dist/index.js
