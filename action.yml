@@ -17,6 +17,15 @@ inputs:
   environment:
     description: Environment variables to add or update on the preview site.
     required: false
+  existing-certificate:
+    description: Existing SSL certificate to use for the preview site.
+    required: false
+  existing-certificate-key:
+    description: Existing SSL certificate private key to use for the preview site.
+    required: false
+  clone-certificate:
+    description: Forge SSL certificate ID to clone to the preview site.
+    required: false
 runs:
   using: node20
   main: dist/index.js

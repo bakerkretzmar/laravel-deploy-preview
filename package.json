@@ -1,6 +1,6 @@
 {
   "name": "laravel-deploy-preview",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "license": "MIT",
   "description": "GitHub action to deploy PR preview sites for Laravel apps.",
   "author": "Jacob Baker-Kretzmar <jacobtbk@gmail.com>",

@@ -25,6 +25,7 @@ type JobPayload = {
 type CertificatePayload = {
   id: number;
   status: string;
+  activation_status?: string | null;
   active: boolean;
 };
 
@@ -141,13 +142,49 @@ export class Forge {
     return (await this.post(`servers/${server}/sites/${site}/deployment/deploy`)).data.site;
   }
 
+  static async installExistingCertificate(
+    server: number,
+    site: number,
+    certificate: string,
+    key: string,
+  ): Promise<CertificatePayload> {
+    return (
+      await this.post(`servers/${server}/sites/${site}/certificates`, {
+        type: 'existing',
+        certificate,
+        key,
+      })
+    ).data.certificate;
+  }
+
+  static async cloneExistingCertificate(
+    server: number,
+    site: number,
+    certificate: number,
+  ): Promise<CertificatePayload> {
+    return (
+      await this.post(`servers/${server}/sites/${site}/certificates`, {
+        type: 'clone',
+        certificate_id: certificate,
+      })
+    ).data.certificate;
+  }
+
   static async obtainCertificate(server: number, site: number, domain: string): Promise<CertificatePayload> {
     return (await this.post(`servers/${server}/sites/${site}/certificates/letsencrypt`, { domains: [domain] })).data
       .certificate;
   }
 
+  static async listCertificates(server: number, site: number): Promise<CertificatePayload[]> {
+    return (await this.get(`servers/${server}/sites/${site}/certificates`)).data.certificates;
+  }
+
   static async getCertificate(server: number, site: number, certificate: number): Promise<CertificatePayload> {
     return (await this.get(`servers/${server}/sites/${site}/certificates/${certificate}`)).data.certificate;
+  }
+
+  static async activateCertificate(server: number, site: number, certificate: number): Promise<void> {
+    await this.post(`servers/${server}/sites/${site}/certificates/${certificate}/activate`);
   }
 
   static setToken(token: string): void {
@@ -278,15 +315,29 @@ export class Site {
     await Forge.updateDeployScript(this.server_id, this.id, `${script}\n${append}`);
   }
 
-  async installCertificate(): Promise<void> {
+  async obtainCertificate(): Promise<void> {
     this.certificate_id = (await Forge.obtainCertificate(this.server_id, this.id, this.name)).id;
+  }
+
+  async installExistingCertificate(certificate: string, key: string): Promise<void> {
+    this.certificate_id = (await Forge.installExistingCertificate(this.server_id, this.id, certificate, key)).id;
+  }
+
+  async cloneExistingCertificate(certificate: number): Promise<void> {
+    this.certificate_id = (await Forge.cloneExistingCertificate(this.server_id, this.id, certificate)).id;
   }
 
   async ensureCertificateActivated(): Promise<void> {
     let certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
     await until(
       () => certificate.active,
-      async () => (certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id)),
+      async () => {
+        if (certificate.activation_status !== 'activated') {
+          certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
+        } else {
+          await Forge.activateCertificate(this.server_id, this.id, this.certificate_id);
+        }
+      },
     );
   }
 

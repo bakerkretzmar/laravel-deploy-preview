@@ -123,6 +123,37 @@ Example:
       TELESCOPE_ENABLED=false
 ```
 
+#### `existing-certificate` & `existing-certificate-key`
+
+The `existing-certificate` and `existing-certificate-key` input parameters allow you to supply a custom SSL certificate for the preview site instead of obtaining one from Let’s Encrypt.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    existing-certificate: ${{ secrets.SSL_CERTIFICATE }}
+    existing-certificate-key: ${{ secrets.SSL_PRIVATE_KEY }}
+```
+
+#### `clone-certificate`
+
+The `clone-certificate` input parameter allows you to clone an existing Forge SSL certificate for the preview site instead of obtaining one from Let’s Encrypt. The parameter value should be the ID of an existing SSL certificate in Forge.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    clone-certificate: 90051
+```
+
 ## Development
 
 This action is loosely based on GitHub's [hello-world-javascript-action](https://github.com/actions/hello-world-javascript-action) and [typescript-action](https://github.com/actions/typescript-action) templates. It's written in TypeScript and compiled with [`ncc`](https://github.com/vercel/ncc) into a single JavaScript file.

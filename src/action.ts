@@ -6,6 +6,7 @@ type CreateConfig = {
   servers: Array<{ id: number; domain: string }>;
   afterDeploy?: string;
   environment?: Record<string, string>;
+  certificate?: { type: 'clone' | 'existing'; certificate: string; key?: string };
   info?: Function;
   debug?: Function;
   local?: boolean;
@@ -29,6 +30,7 @@ export async function createPreview({
   servers,
   afterDeploy = '',
   environment = {},
+  certificate,
   info = console.log,
   debug = console.log,
   local = false,
@@ -53,9 +55,19 @@ export async function createPreview({
     const site = await server.createSite(name, database);
     info('Site created!');
 
-    info('Obtaining SSL certificate');
-    await site.installCertificate();
-    info('SSL certificate obtained!');
+    if (certificate?.type === 'existing') {
+      info('Installing SSL certificate');
+      await site.installExistingCertificate(certificate.certificate, certificate.key);
+      info('SSL certificate installed!');
+    } else if (certificate?.type === 'clone') {
+      info('Cloning SSL certificate');
+      await site.cloneExistingCertificate(Number(certificate.certificate));
+      info('SSL certificate cloned!');
+    } else {
+      info('Obtaining SSL certificate');
+      await site.obtainCertificate();
+      info('SSL certificate obtained!');
+    }
 
     info(`Installing '${repository}' Git repository in site`);
     await site.installRepository(repository, local ? 'main' : name);

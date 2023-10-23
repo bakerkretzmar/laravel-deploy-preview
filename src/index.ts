@@ -31,6 +31,41 @@ const environment = core.getMultilineInput('environment', { required: false }).r
   return { ...all, [key]: value };
 }, {});
 
+const existingCertificate = core.getInput('existing-certificate', { required: false });
+const existingCertificateKey = core.getInput('existing-certificate-key', { required: false });
+const cloneCertificate = core.getInput('clone-certificate', { required: false });
+
+if (!!existingCertificate !== !!existingCertificateKey) {
+  core.error(
+    `Invalid certificate inputs: ${
+      !existingCertificate
+        ? '`existing-certificate` missing.'
+        : !existingCertificateKey
+        ? '`existing-certificate-key` missing'
+        : ''
+    }`,
+  );
+}
+
+if (!!cloneCertificate && (!!existingCertificate || !!existingCertificateKey)) {
+  core.error(
+    "Invalid certificate inputs: cannot use 'existing' and 'clone' inputs together. Remove `existing-certificate` and `existing-certificate-key`, or `clone-certificate`.",
+  );
+}
+
+const certificate = !!cloneCertificate
+  ? {
+      type: 'clone' as 'clone' | 'existing',
+      certificate: cloneCertificate,
+    }
+  : !!existingCertificate
+  ? {
+      type: 'existing' as 'clone' | 'existing',
+      certificate: existingCertificate,
+      key: existingCertificateKey,
+    }
+  : undefined;
+
 const pr = github.context.payload as PullRequestEvent;
 
 if (pr.action === 'opened') {
@@ -42,6 +77,7 @@ if (pr.action === 'opened') {
     servers,
     afterDeploy,
     environment,
+    certificate,
     info: core.info,
     debug: core.debug,
   });
