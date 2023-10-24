@@ -258,8 +258,8 @@ export class Server {
     this.sites = (await Forge.listSites(this.id)).map((data) => new Site(data));
   }
 
-  async createSite(name: string, database: string): Promise<Site> {
-    const site = new Site(await Forge.createSite(this.id, `${name}.${this.domain}`, database));
+  async createSite(subdomain: string, database: string): Promise<Site> {
+    const site = new Site(await Forge.createSite(this.id, `${subdomain}.${this.domain}`, database));
     await until(
       () => site.status === 'installed',
       async () => await site.refetch(),
