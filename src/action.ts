@@ -3,10 +3,10 @@ import { Server } from './forge.js';
 type CreateConfig = {
   name: string;
   repository: string;
-  servers: Array<{ id: number; domain: string }>;
+  servers: { id: number; domain: string }[];
   afterDeploy?: string;
   environment?: Record<string, string>;
-  certificate?: { type: 'clone' | 'existing'; certificate: string; key?: string };
+  certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string };
   info?: Function;
   debug?: Function;
   local?: boolean;

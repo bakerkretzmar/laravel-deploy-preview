@@ -328,17 +328,19 @@ export class Site {
   }
 
   async ensureCertificateActivated(): Promise<void> {
-    let certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
-    await until(
-      () => certificate.active,
-      async () => {
-        if (certificate.activation_status !== 'activated') {
-          certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
-        } else {
-          await Forge.activateCertificate(this.server_id, this.id, this.certificate_id);
-        }
-      },
-    );
+    if (this.certificate_id) {
+      const cert_id = this.certificate_id;
+      let certificate = await Forge.getCertificate(this.server_id, this.id, cert_id);
+      await until(
+        () => certificate.active,
+        async () => {
+          if (!certificate.activation_status) {
+            await Forge.activateCertificate(this.server_id, this.id, cert_id);
+          }
+          certificate = await Forge.getCertificate(this.server_id, this.id, cert_id);
+        },
+      );
+    }
   }
 
   async enableQuickDeploy(): Promise<void> {
@@ -357,7 +359,9 @@ export class Site {
   // Environment file??
   async deleteDatabase(name: string): Promise<void> {
     const database = (await Forge.listDatabases(this.server_id)).find((db) => db.name === name);
-    await Forge.deleteDatabase(this.server_id, database.id);
+    if (database) {
+      await Forge.deleteDatabase(this.server_id, database.id);
+    }
   }
 
   async delete(): Promise<void> {
