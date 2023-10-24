@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { until } from '../src/lib';
+import { until } from '../../src/lib';
 
 describe('until', () => {
   test('run attempt callback once immediately', async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 import * as core from '@actions/core';
-import { run } from '../src/main';
+import { run } from '../../src/main';
 
 describe('inputs', () => {
   const coreSetFailed = vi.spyOn(core, 'setFailed');

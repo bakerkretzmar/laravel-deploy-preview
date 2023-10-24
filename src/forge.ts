@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 import { until } from './lib.js';
 
 type ServerPayload = {
@@ -33,6 +33,18 @@ type DatabasePayload = {
   id: number;
   name: string;
 };
+
+class ForgeError extends Error {
+  axiosError: AxiosError;
+  data?: unknown;
+
+  constructor(e: AxiosError) {
+    super(`Forge API request failed with status code ${e.response?.status}.`);
+    this.name = 'ForgeError';
+    this.axiosError = e;
+    this.data = e.response?.data;
+  }
+}
 
 export class Forge {
   static #token: string;
@@ -200,6 +212,10 @@ export class Forge {
           'Authorization': `Bearer ${this.#token}`,
         },
       });
+      this.#client.interceptors.response.use(
+        (response) => response,
+        (error) => Promise.reject(new ForgeError(error)),
+      );
     }
     return this.#client;
   }
