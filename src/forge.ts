@@ -332,11 +332,10 @@ export class Site {
     await until(
       () => certificate.active,
       async () => {
-        if (certificate.activation_status !== 'activated') {
-          certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
-        } else {
+        if (!certificate.activation_status) {
           await Forge.activateCertificate(this.server_id, this.id, this.certificate_id);
         }
+        certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
       },
     );
   }
