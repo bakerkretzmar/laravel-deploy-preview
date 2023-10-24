@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { PullRequestEvent } from '@octokit/webhooks-definitions/schema.js';
+import { PullRequestEvent } from '@octokit/webhooks-types';
 import { Forge } from './forge.js';
 import { createPreview, destroyPreview } from './action.js';
 
@@ -69,8 +69,6 @@ const certificate = !!cloneCertificate
 const pr = github.context.payload as PullRequestEvent;
 
 if (pr.action === 'opened' || pr.action === 'reopened') {
-  // TODO seems like there's a bug in these type definitions, narrowing it to PullRequestOpenedEvent causes an error
-  const pr = github.context.payload as PullRequestEvent;
   const preview = await createPreview({
     name: pr.pull_request.head.ref,
     repository: pr.repository.full_name,
