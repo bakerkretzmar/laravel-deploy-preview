@@ -14,5 +14,5 @@
     "forceConsistentCasingInFileNames": true,
     "strictNullChecks": true
   },
-  "exclude": ["./dist", "./node_modules", "./tests", "./src/debug.ts"]
+  "exclude": ["./dist", "./node_modules", "./tests", "./src/debug.ts", "./vitest.config.ts"]
 }

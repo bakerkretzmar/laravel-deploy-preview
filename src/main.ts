@@ -7,7 +7,6 @@ import { createPreview, destroyPreview } from './action.js';
 export async function run() {
   try {
     const servers = core.getMultilineInput('servers', { required: true }).map((line) => {
-      core.debug(`Parsing server input line: ${line}`);
       const [domain, id] = line.split(' ');
       if (!domain || !id) {
         throw new Error(
@@ -114,7 +113,7 @@ export async function run() {
     }
   } catch (error) {
     if (error instanceof Error) {
-      core.setFailed(error);
+      core.setFailed(error.message);
     }
   }
 }
