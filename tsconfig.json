@@ -1,13 +1,18 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "target": "es2017",
-    "module": "node16",
-    "outDir": "./lib",
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "rootDir": "./src",
-    // "strict": true,
-    "noImplicitAny": true,
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "sourceMap": true,
     "esModuleInterop": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "strictNullChecks": true
   },
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["./dist", "./node_modules", "./tests", "./src/debug.ts"]
 }

@@ -1,26 +1,46 @@
 {
   "name": "laravel-deploy-preview",
+  "description": "Deploy PR preview sites for Laravel apps.",
   "version": "2.1.0",
-  "license": "MIT",
-  "description": "GitHub action to deploy PR preview sites for Laravel apps.",
   "author": "Jacob Baker-Kretzmar <jacobtbk@gmail.com>",
+  "license": "MIT",
   "private": true,
-  "scripts": {
-    "debug": "ncc run src/debug.ts",
-    "build": "tsc && ncc build --minify --source-map --license licenses.txt"
+  "homepage": "https://github.com/bakerkretzmar/laravel-deploy-preview",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bakerkretzmar/laravel-deploy-preview.git"
   },
+  "bugs": {
+    "url": "https://github.com/bakerkretzmar/laravel-deploy-preview/issues"
+  },
+  "keywords": [
+    "actions",
+    "laravel",
+    "ci",
+    "deploy"
+  ],
   "type": "module",
-  "main": "lib/index.js",
-  "devDependencies": {
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && ncc build src/index.ts --minify --source-map --license licenses.txt",
+    "debug": "ncc run src/debug.ts",
+    "test": "vitest"
+  },
+  "dependencies": {
     "@actions/core": "^1.10.1",
     "@actions/github": "^6.0.0",
+    "axios": "^1.5.1"
+  },
+  "devDependencies": {
     "@octokit/webhooks-types": "^7.3.1",
-    "@types/node": "^20.8.6",
-    "@vercel/ncc": "^0.38.0",
-    "axios": "^1.5.1",
+    "@types/node": "^20.8.8",
+    "@vercel/ncc": "^0.38.1",
     "dotenv": "^16.3.1",
     "prettier": "^3.0.3",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
   },
   "engines": {
     "node": ">=20"

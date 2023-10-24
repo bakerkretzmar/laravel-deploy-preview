@@ -34,7 +34,7 @@ export async function createPreview({
   info = console.log,
   debug = console.log,
   local = false,
-}: CreateConfig): Promise<DeployPreview> {
+}: CreateConfig): Promise<DeployPreview | undefined> {
   debug(`Loading server with ID ${servers[0].id}`);
   const server = await Server.fetch(servers[0].id, servers[0].domain);
   // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
@@ -42,7 +42,7 @@ export async function createPreview({
   await server.loadSites();
 
   debug(`Checking for site named '${name}'`);
-  const extantSite = server.sites.find((site) => site.name === name);
+  const extantSite = server.sites?.find((site) => site.name === name);
 
   if (extantSite) {
     // re-use existing site
@@ -120,7 +120,7 @@ export async function destroyPreview({
   await server.loadSites();
 
   debug(`Checking for site named '${name}'`);
-  const site = server.sites.find((site) => site.name === `${name}.${server.domain}`);
+  const site = server.sites?.find((site) => site.name === `${name}.${server.domain}`);
 
   if (site) {
     info('Site exists');

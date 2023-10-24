@@ -1,13 +1,14 @@
-function sleep(s: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, s * 1000));
-}
-
-export async function until(condition: () => boolean, attempt: () => void, pause: number = 1): Promise<void> {
-  await attempt();
+export async function until<T>(
+  condition: () => boolean | Promise<boolean>,
+  attempt: () => T | Promise<T>,
+  pause: number = 1,
+): Promise<T> {
+  let result = await attempt();
   while (!condition()) {
-    await sleep(pause);
-    await attempt();
+    await new Promise((resolve) => setTimeout(resolve, pause * 1000));
+    result = await attempt();
   }
+  return result;
 }
 
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {

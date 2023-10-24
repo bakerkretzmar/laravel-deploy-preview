@@ -1,10 +1,4 @@
 * text=auto
 
-/dist/** linguist-generated
+/dist/** -diff linguist-generated=true
 .env.example linguist-documentation
-
-/.gitattributes export-ignore
-/.gitignore export-ignore
-/package.json export-ignore
-/package-lock.json export-ignore
-/tsconfig.json export-ignore
