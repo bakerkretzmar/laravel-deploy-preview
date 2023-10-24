@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { until } from './helpers.js';
+import { until } from './lib.js';
 
 type ServerPayload = {
   id: number;
