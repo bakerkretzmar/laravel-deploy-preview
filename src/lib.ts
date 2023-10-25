@@ -11,6 +11,14 @@ export async function until<T>(
   return result;
 }
 
+export function sanitizeDatabaseName(input: string) {
+  return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
+}
+
+export function sanitizeDomainName(input: string) {
+  return input.replace(/[^\w]+/g, '-');
+}
+
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
 //   const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
 //     carry[site.server_id] ??= 0;

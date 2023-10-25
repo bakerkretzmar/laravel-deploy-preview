@@ -1,4 +1,5 @@
 import { Server } from './forge.js';
+import { sanitizeDatabaseName } from './lib.js';
 
 type CreateConfig = {
   name: string;
@@ -48,7 +49,7 @@ export async function createPreview({
     // re-use existing site
     info('Site exists');
   } else {
-    const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
+    const database = sanitizeDatabaseName(name);
     debug(`Sanitized database name: '${database}'`);
 
     info(`Creating new deploy preview site named '${name}'`);

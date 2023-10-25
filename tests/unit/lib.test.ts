@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { until } from '../../src/lib';
+import { sanitizeDatabaseName, sanitizeDomainName, until } from '../../src/lib';
 
 describe('until', () => {
   test('run attempt callback once immediately', async () => {
@@ -45,5 +45,28 @@ describe('until', () => {
 
     expect(attempt).toHaveBeenCalledTimes(1);
     expect(result).toBe('result');
+  });
+});
+
+describe('sanitizeDatabaseName', () => {
+  test.each([
+    ['foo_bar', 'foo_bar'],
+    ['foo-bar', 'foo_bar'],
+    ['foo--bar', 'foo_bar'],
+    ['foo%-bar', 'foo_bar'],
+    ['one! two? three 0x995', 'one_two_three_0x995'],
+  ])('%s → %s', (input, output) => {
+    expect(sanitizeDatabaseName(input)).toBe(output);
+  });
+});
+
+describe('sanitizeDomainName', () => {
+  test.each([
+    ['foo-bar', 'foo-bar'],
+    ['foo__bar', 'foo__bar'],
+    ['foo%-bar', 'foo-bar'],
+    ['one! two? three 0x995', 'one-two-three-0x995'],
+  ])('%s → %s', (input, output) => {
+    expect(sanitizeDomainName(input)).toBe(output);
   });
 });

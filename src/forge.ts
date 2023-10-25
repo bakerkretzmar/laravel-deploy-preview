@@ -34,7 +34,7 @@ type DatabasePayload = {
   name: string;
 };
 
-class ForgeError extends Error {
+export class ForgeError extends Error {
   axiosError: AxiosError;
   data?: unknown;
 
