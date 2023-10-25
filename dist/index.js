@@ -37763,6 +37763,12 @@ async function until(condition, attempt, pause = 1) {
     }
     return result;
 }
+function sanitizeDatabaseName(input) {
+    return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
+}
+function sanitizeDomainName(input) {
+    return input.replace(/[^\w]+/g, '-');
+}
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
 //   const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
 //     carry[site.server_id] ??= 0;
@@ -37783,6 +37789,16 @@ async function until(condition, attempt, pause = 1) {
 ;// CONCATENATED MODULE: ./src/forge.ts
 
 
+class ForgeError extends Error {
+    axiosError;
+    data;
+    constructor(e) {
+        super(`Forge API request failed with status code ${e.response?.status}.`);
+        this.name = 'ForgeError';
+        this.axiosError = e;
+        this.data = e.response?.data;
+    }
+}
 class Forge {
     static #token;
     static #client;
@@ -37894,6 +37910,7 @@ class Forge {
                     'Authorization': `Bearer ${this.#token}`,
                 },
             });
+            this.#client.interceptors.response.use((response) => response, (error) => Promise.reject(new ForgeError(error)));
         }
         return this.#client;
     }
@@ -37926,8 +37943,8 @@ class Server {
     async loadSites() {
         this.sites = (await Forge.listSites(this.id)).map((data) => new Site(data));
     }
-    async createSite(name, database) {
-        const site = new Site(await Forge.createSite(this.id, `${name}.${this.domain}`, database));
+    async createSite(subdomain, database) {
+        const site = new Site(await Forge.createSite(this.id, `${subdomain}.${this.domain}`, database));
         await until(() => site.status === 'installed', async () => await site.refetch());
         return site;
     }
@@ -38035,6 +38052,7 @@ class Site {
 
 ;// CONCATENATED MODULE: ./src/action.ts
 
+
 async function createPreview({ name, repository, servers, afterDeploy = '', environment = {}, certificate, info = console.log, debug = console.log, local = false, }) {
     debug(`Loading server with ID ${servers[0].id}`);
     const server = await Server.fetch(servers[0].id, servers[0].domain);
@@ -38048,7 +38066,7 @@ async function createPreview({ name, repository, servers, afterDeploy = '', envi
         info('Site exists');
     }
     else {
-        const database = name.replace(/-/g, '_').replace(/[^\w_]/g, '');
+        const database = sanitizeDatabaseName(name);
         debug(`Sanitized database name: '${database}'`);
         info(`Creating new deploy preview site named '${name}'`);
         const site = await server.createSite(name, database);
@@ -38126,7 +38144,6 @@ async function destroyPreview({ name, servers, info = console.log, debug = conso
 async function run() {
     try {
         const servers = core.getMultilineInput('servers', { required: true }).map((line) => {
-            core.debug(`Parsing server input line: ${line}`);
             const [domain, id] = line.split(' ');
             if (!domain || !id) {
                 throw new Error(`Invalid \`servers\` input. Each line must contain a domain name and a Forge server ID, separated by one space. Found '${line}'.`);
@@ -38209,8 +38226,11 @@ async function run() {
         }
     }
     catch (error) {
+        if (error instanceof ForgeError) {
+            core.info(JSON.stringify(error.data, null, 2));
+        }
         if (error instanceof Error) {
-            core.setFailed(error);
+            core.setFailed(error.message);
         }
     }
 }
