@@ -3,7 +3,9 @@ import { afterAll, describe, expect, test, vi } from 'vitest';
 import { Forge, ForgeError } from '../../src/forge';
 import { sanitizeDatabaseName, until } from '../../src/lib';
 
+// @ts-ignore
 Forge.setToken(import.meta.env.VITE_FORGE_TOKEN);
+// @ts-ignore
 const server = Number(import.meta.env.VITE_FORGE_SERVER);
 
 function id() {

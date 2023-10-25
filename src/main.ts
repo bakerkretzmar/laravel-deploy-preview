@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { PullRequestEvent } from '@octokit/webhooks-types';
-import { Forge } from './forge.js';
+import { Forge, ForgeError } from './forge.js';
 import { createPreview, destroyPreview } from './action.js';
 
 export async function run() {
@@ -112,6 +112,9 @@ export async function run() {
       });
     }
   } catch (error) {
+    if (error instanceof ForgeError) {
+      core.info(JSON.stringify(error.data, null, 2));
+    }
     if (error instanceof Error) {
       core.setFailed(error.message);
     }
