@@ -1,5 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
-import { until } from './helpers.js';
+import axios, { AxiosError, AxiosInstance } from 'axios';
+import { until } from './lib.js';
 
 type ServerPayload = {
   id: number;
@@ -33,6 +33,18 @@ type DatabasePayload = {
   id: number;
   name: string;
 };
+
+export class ForgeError extends Error {
+  axiosError: AxiosError;
+  data?: unknown;
+
+  constructor(e: AxiosError) {
+    super(`Forge API request failed with status code ${e.response?.status}.`);
+    this.name = 'ForgeError';
+    this.axiosError = e;
+    this.data = e.response?.data;
+  }
+}
 
 export class Forge {
   static #token: string;
@@ -200,6 +212,10 @@ export class Forge {
           'Authorization': `Bearer ${this.#token}`,
         },
       });
+      this.#client.interceptors.response.use(
+        (response) => response,
+        (error) => Promise.reject(new ForgeError(error)),
+      );
     }
     return this.#client;
   }
@@ -242,8 +258,8 @@ export class Server {
     this.sites = (await Forge.listSites(this.id)).map((data) => new Site(data));
   }
 
-  async createSite(name: string, database: string): Promise<Site> {
-    const site = new Site(await Forge.createSite(this.id, `${name}.${this.domain}`, database));
+  async createSite(subdomain: string, database: string): Promise<Site> {
+    const site = new Site(await Forge.createSite(this.id, `${subdomain}.${this.domain}`, database));
     await until(
       () => site.status === 'installed',
       async () => await site.refetch(),
@@ -328,16 +344,19 @@ export class Site {
   }
 
   async ensureCertificateActivated(): Promise<void> {
-    let certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
-    await until(
-      () => certificate.active,
-      async () => {
-        if (!certificate.activation_status) {
-          await Forge.activateCertificate(this.server_id, this.id, this.certificate_id);
-        }
-        certificate = await Forge.getCertificate(this.server_id, this.id, this.certificate_id);
-      },
-    );
+    if (this.certificate_id) {
+      const cert_id = this.certificate_id;
+      let certificate = await Forge.getCertificate(this.server_id, this.id, cert_id);
+      await until(
+        () => certificate.active,
+        async () => {
+          if (!certificate.activation_status) {
+            await Forge.activateCertificate(this.server_id, this.id, cert_id);
+          }
+          certificate = await Forge.getCertificate(this.server_id, this.id, cert_id);
+        },
+      );
+    }
   }
 
   async enableQuickDeploy(): Promise<void> {
@@ -356,7 +375,9 @@ export class Site {
   // Environment file??
   async deleteDatabase(name: string): Promise<void> {
     const database = (await Forge.listDatabases(this.server_id)).find((db) => db.name === name);
-    await Forge.deleteDatabase(this.server_id, database.id);
+    if (database) {
+      await Forge.deleteDatabase(this.server_id, database.id);
+    }
   }
 
   async delete(): Promise<void> {

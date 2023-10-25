@@ -1,13 +1,22 @@
-function sleep(s: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, s * 1000));
+export async function until<T>(
+  condition: () => boolean | Promise<boolean>,
+  attempt: () => T | Promise<T>,
+  pause: number = 1,
+): Promise<T> {
+  let result = await attempt();
+  while (!condition()) {
+    await new Promise((resolve) => setTimeout(resolve, pause * 1000));
+    result = await attempt();
+  }
+  return result;
 }
 
-export async function until(condition: () => boolean, attempt: () => void, pause: number = 1): Promise<void> {
-  await attempt();
-  while (!condition()) {
-    await sleep(pause);
-    await attempt();
-  }
+export function sanitizeDatabaseName(input: string) {
+  return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
+}
+
+export function sanitizeDomainName(input: string) {
+  return input.replace(/[^\w]+/g, '-');
 }
 
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {

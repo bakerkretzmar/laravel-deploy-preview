@@ -1,5 +1,6 @@
 name: Laravel Deploy Preview
-description: Deploy a PR preview site.
+description: Deploy PR preview sites for Laravel apps.
+author: Jacob Baker-Kretzmar
 inputs:
   forge-token:
     description: Laravel Forge API token.
