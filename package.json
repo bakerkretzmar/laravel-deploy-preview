@@ -1,7 +1,7 @@
 {
   "name": "laravel-deploy-preview",
   "description": "Deploy PR preview sites for Laravel apps.",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "author": "Jacob Baker-Kretzmar <jacobtbk@gmail.com>",
   "license": "MIT",
   "private": true,
@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@octokit/webhooks-types": "^7.3.1",
-    "@types/node": "^20.8.8",
+    "@types/node": "^20.8.9",
     "@vercel/ncc": "^0.38.1",
     "dotenv": "^16.3.1",
     "prettier": "^3.0.3",
