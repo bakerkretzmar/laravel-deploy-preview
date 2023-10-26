@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import { Forge, Site } from './forge.js';
-import { sanitizeDatabaseName, normalizeDomainName, tap } from './lib.js';
+import { normalizeDatabaseName, normalizeDomainName, tap } from './lib.js';
 
 export async function createPreview({
   branch,
@@ -32,7 +32,7 @@ export async function createPreview({
   }
 
   core.info(`Creating site: ${siteName}.`);
-  site = await Site.create(servers[0].id, siteName, sanitizeDatabaseName(branch));
+  site = await Site.create(servers[0].id, siteName, normalizeDatabaseName(branch));
 
   if (certificate?.type === 'existing') {
     core.info('Installing existing SSL certificate.');
@@ -50,7 +50,7 @@ export async function createPreview({
 
   core.info('Updating `.env` file.');
   await site.setEnvironmentVariables({
-    DB_DATABASE: sanitizeDatabaseName(branch),
+    DB_DATABASE: normalizeDatabaseName(branch),
     ...environment,
   });
 
@@ -104,5 +104,5 @@ export async function destroyPreview({
   await site.delete();
 
   core.info('Deleting database.');
-  await site.deleteDatabase(sanitizeDatabaseName(branch));
+  await site.deleteDatabase(normalizeDatabaseName(branch));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { sanitizeDatabaseName, normalizeDomainName, until } from '../../src/lib';
+import { normalizeDatabaseName, normalizeDomainName, until } from '../../src/lib';
 
 describe('until', () => {
   test('run attempt callback once immediately', async () => {
@@ -48,7 +48,7 @@ describe('until', () => {
   });
 });
 
-describe('sanitizeDatabaseName', () => {
+describe('normalizeDatabaseName', () => {
   test.each([
     ['foo_bar', 'foo_bar'],
     ['foo-bar', 'foo_bar'],
@@ -56,7 +56,7 @@ describe('sanitizeDatabaseName', () => {
     ['foo%-bar', 'foo_bar'],
     ['one! two? three 0x995', 'one_two_three_0x995'],
   ])('%s → %s', (input, output) => {
-    expect(sanitizeDatabaseName(input)).toBe(output);
+    expect(normalizeDatabaseName(input)).toBe(output);
   });
 });
 

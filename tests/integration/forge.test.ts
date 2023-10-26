@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto';
 import { afterAll, describe, expect, test } from 'vitest';
 import { Forge, ForgeError } from '../../src/forge';
-import { sanitizeDatabaseName, until } from '../../src/lib';
+import { normalizeDatabaseName, until } from '../../src/lib';
 
 // @ts-expect-error import.meta not set up
 Forge.token(import.meta.env.VITE_FORGE_TOKEN);
@@ -109,7 +109,7 @@ describe('sites', () => {
     const database = `test-${id()}`;
     const name = `${database}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, sanitizeDatabaseName(database));
+    let site = await Forge.createSite(server, name, normalizeDatabaseName(database));
 
     await until(
       () => site.status === 'installed',
@@ -119,7 +119,7 @@ describe('sites', () => {
     const name2 = `test-${id()}.laravel-deploy-preview.com`;
 
     try {
-      await Forge.createSite(server, name2, sanitizeDatabaseName(database));
+      await Forge.createSite(server, name2, normalizeDatabaseName(database));
     } catch (e) {
       expect(e).toBeInstanceOf(ForgeError);
       expect(e.message).toBe('Forge API request failed with status code 422.');

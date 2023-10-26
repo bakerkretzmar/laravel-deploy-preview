@@ -19,7 +19,7 @@ export function tap<T>(value: any, interceptor: (v: any) => T) {
   return interceptor(value);
 }
 
-export function sanitizeDatabaseName(input: string) {
+export function normalizeDatabaseName(input: string) {
   return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
 }
 
