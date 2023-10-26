@@ -37848,11 +37848,11 @@ async function until(condition, attempt, pause = 1) {
 function tap(value, interceptor) {
     return interceptor(value);
 }
-function sanitizeDatabaseName(input) {
-    return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
+function normalizeDatabaseName(input) {
+    return input.replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
 }
-function sanitizeDomainName(input) {
-    return input.replace(/[^\w]+/g, '-');
+function normalizeDomainName(input) {
+    return input.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
 }
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
 //   const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
@@ -37877,11 +37877,13 @@ function sanitizeDomainName(input) {
 class ForgeError extends Error {
     axiosError;
     data;
-    constructor(e) {
+    detail;
+    constructor(e, detail) {
         super(`Forge API request failed with status code ${e.response?.status}.`);
         this.name = 'ForgeError';
         this.axiosError = e;
         this.data = e.response?.data;
+        this.detail = detail;
     }
 }
 class Forge {
@@ -38023,13 +38025,19 @@ class Forge {
                     await sleep(1);
                     return this.#client.request(error.config);
                 }
-                return Promise.reject(new ForgeError(error));
+                let detail = undefined;
+                if (error.response?.status === 404 &&
+                    /servers\/\d+\/sites\/\d+\/certificates\/\d+/.test(error.response?.config?.url)) {
+                    const [, server, site] = error.response.config.url.match(/servers\/(\d+)\/sites\/(\d+)/);
+                    detail = `A previously requested SSL certificate was not found. This may mean that automatically obtaining and installing a Let’s Encrypt certificate failed. Please review any error output in your Forge dashboard and then try again: https://forge.laravel.com/servers/${server}/sites/${site}.`;
+                }
+                return Promise.reject(new ForgeError(error, detail));
             });
         }
         return this.#client;
     }
-    static get(path) {
-        return this.client().get(path);
+    static get(path, params = {}) {
+        return this.client().get(path, { params });
     }
     static post(path, data = {}) {
         return this.client().post(path, data);
@@ -38152,14 +38160,14 @@ class Site {
 
 async function createPreview({ branch, repository, servers, afterDeploy = '', environment = {}, certificate, }) {
     core.info(`Creating preview site for branch: ${branch}.`);
-    const siteName = `${branch}.${servers[0].domain}`;
+    const siteName = `${normalizeDomainName(branch)}.${servers[0].domain}`;
     let site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === siteName), (site) => (site ? new Site(site) : undefined));
     if (site) {
         core.info(`Site exists: ${site.name}`);
         return;
     }
     core.info(`Creating site: ${siteName}.`);
-    site = await Site.create(servers[0].id, siteName, sanitizeDatabaseName(branch));
+    site = await Site.create(servers[0].id, siteName, normalizeDatabaseName(branch));
     if (certificate?.type === 'existing') {
         core.info('Installing existing SSL certificate.');
         await site.installCertificate(certificate.certificate, certificate.key);
@@ -38176,7 +38184,7 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
     await site.installRepository(repository, branch);
     core.info('Updating `.env` file.');
     await site.setEnvironmentVariables({
-        DB_DATABASE: sanitizeDatabaseName(branch),
+        DB_DATABASE: normalizeDatabaseName(branch),
         ...environment,
     });
     core.info('Installing scheduler.');
@@ -38195,7 +38203,7 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
 }
 async function destroyPreview({ branch, servers, }) {
     core.info(`Removing preview site: ${branch}.`);
-    const siteName = `${branch}.${servers[0].domain}`;
+    const siteName = `${normalizeDomainName(branch)}.${servers[0].domain}`;
     const site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === `${siteName}`), (site) => (site ? new Site(site) : undefined));
     if (!site) {
         core.warning(`Site not found: ${siteName}.`);
@@ -38207,7 +38215,7 @@ async function destroyPreview({ branch, servers, }) {
     core.info('Deleting site.');
     await site.delete();
     core.info('Deleting database.');
-    await site.deleteDatabase(sanitizeDatabaseName(branch));
+    await site.deleteDatabase(normalizeDatabaseName(branch));
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -38299,6 +38307,9 @@ async function run() {
     catch (error) {
         if (error instanceof ForgeError) {
             core.info(JSON.stringify(error.data, null, 2));
+            if (error.detail) {
+                core.info(error.detail);
+            }
         }
         if (error instanceof Error) {
             core.setFailed(error.message);
