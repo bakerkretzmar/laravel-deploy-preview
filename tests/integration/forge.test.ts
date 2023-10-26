@@ -156,6 +156,7 @@ describe('sites', () => {
     await until(
       () => certificate.status === 'installed',
       async () => (certificate = await Forge.getCertificate(server, site.id, certificate.id)),
+      5,
     );
 
     expect(certificate).toMatchObject({

@@ -212,10 +212,18 @@ export class Forge {
           'Authorization': `Bearer ${this.#token}`,
         },
       });
-      this.#client.interceptors.response.use(
-        (response) => response,
-        (error) => Promise.reject(new ForgeError(error)),
-      );
+      // this.#client.interceptors.request.use((config) => {
+      //   console.log(`${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+      //   return config;
+      // });
+      this.#client.interceptors.response.use(undefined, async (error) => {
+        if (error.response?.status === 429) {
+          // console.warn('Rate-limited by Forge API, retrying in one second...');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          return this.#client!.request(error.config);
+        }
+        return Promise.reject(new ForgeError(error));
+      });
     }
     return this.#client;
   }
