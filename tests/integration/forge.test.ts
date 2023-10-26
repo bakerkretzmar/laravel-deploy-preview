@@ -80,7 +80,7 @@ describe('sites', () => {
     );
   });
 
-  test('duplicate site name', async () => {
+  test('handle duplicate site name', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
     let site = await Forge.createSite(server, name, '');
@@ -101,7 +101,7 @@ describe('sites', () => {
     expect.assertions(3);
   });
 
-  test('duplicate database name', async () => {
+  test('handle duplicate database name', async () => {
     const database = `test-${id()}`;
     const name = `${database}.laravel-deploy-preview.com`;
 
@@ -123,6 +123,38 @@ describe('sites', () => {
     }
 
     expect.assertions(3);
+  });
+
+  // Needs a repo or smth installed first or Forge 500s
+  test.todo('enable quick deploy', async () => {
+    const name = `test-${id()}.laravel-deploy-preview.com`;
+
+    let site = await Forge.createSite(server, name, '');
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      status: 'installing',
+    });
+
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      status: 'installed',
+    });
+
+    site = await Forge.enableQuickDeploy(server, site.id);
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      quick_deploy: 'true',
+    });
   });
 
   test('obtain SSL certificate', async () => {
