@@ -111,6 +111,9 @@ export async function run() {
   } catch (error) {
     if (error instanceof ForgeError) {
       core.info(JSON.stringify(error.data, null, 2));
+      if (error.detail) {
+        core.info(error.detail);
+      }
     }
     if (error instanceof Error) {
       core.setFailed(error.message);

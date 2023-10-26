@@ -161,7 +161,7 @@ describe('sites', () => {
     });
   });
 
-  test('obtain SSL certificate', async () => {
+  test('create SSL certificate', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
     let site = await Forge.createSite(server, name, '');
@@ -213,7 +213,46 @@ describe('sites', () => {
     });
   });
 
-  test('use existing SSL certificate', async () => {
+  test('handle failing to create SSL certificate', async () => {
+    // Domain doesn't exist / isn't pointed to the server
+    const name = `test-${id()}-laravel-deploy-preview.com`;
+
+    let site = await Forge.createSite(server, name, '');
+
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    let certificate = await Forge.createCertificate(server, site.id, name);
+
+    expect(certificate).toMatchObject({
+      domain: name,
+      type: 'letsencrypt',
+      request_status: 'created',
+      status: 'installing',
+    });
+
+    try {
+      // Certificate installation will fail and the 'installing' cert above will disappear from the list
+      await until(
+        () => false,
+        async () => (certificate = await Forge.getCertificate(server, site.id, certificate.id)),
+        5,
+      );
+    } catch (e) {
+      expect(e).toBeInstanceOf(ForgeError);
+      expect(e.message).toBe('Forge API request failed with status code 404.');
+      expect(e.detail).toBe(
+        `A previously requested SSL certificate was not found. This may mean that automatically obtaining and installing a Let’s Encrypt certificate failed. Please review any error output in your Forge dashboard and then try again: https://forge.laravel.com/servers/${server}/sites/${site.id}.`,
+      );
+      expect(e.data).toBe('Resource not found.');
+    }
+
+    expect.assertions(5);
+  });
+
+  test('install SSL certificate', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
     let site = await Forge.createSite(server, name, '');

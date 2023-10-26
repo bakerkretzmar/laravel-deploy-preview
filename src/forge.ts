@@ -37,12 +37,14 @@ type DatabasePayload = {
 export class ForgeError extends Error {
   axiosError: AxiosError;
   data?: unknown;
+  detail?: string;
 
-  constructor(e: AxiosError) {
+  constructor(e: AxiosError, detail?: string) {
     super(`Forge API request failed with status code ${e.response?.status}.`);
     this.name = 'ForgeError';
     this.axiosError = e;
     this.data = e.response?.data;
+    this.detail = detail;
   }
 }
 
@@ -233,15 +235,23 @@ export class Forge {
             await sleep(1);
             return this.#client!.request(error.config);
           }
-          return Promise.reject(new ForgeError(error));
+          let detail = undefined;
+          if (
+            error.response?.status === 404 &&
+            /servers\/\d+\/sites\/\d+\/certificates\/\d+/.test(error.response?.config?.url)
+          ) {
+            const [, server, site] = error.response.config.url.match(/servers\/(\d+)\/sites\/(\d+)/);
+            detail = `A previously requested SSL certificate was not found. This may mean that automatically obtaining and installing a Let’s Encrypt certificate failed. Please review any error output in your Forge dashboard and then try again: https://forge.laravel.com/servers/${server}/sites/${site}.`;
+          }
+          return Promise.reject(new ForgeError(error, detail));
         },
       );
     }
     return this.#client;
   }
 
-  private static get<T = any>(path: string) {
-    return this.client().get<any, AxiosResponse<T, any>, any>(path);
+  private static get<T = any>(path: string, params: object = {}) {
+    return this.client().get<any, AxiosResponse<T, any>, any>(path, { params });
   }
 
   private static post<T = any>(path: string, data: object = {}) {
