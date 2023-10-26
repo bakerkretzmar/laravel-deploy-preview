@@ -23,7 +23,7 @@ export function sanitizeDatabaseName(input: string) {
   return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
 }
 
-export function sanitizeDomainName(input: string) {
+export function normalizeDomainName(input: string) {
   return input.replace(/[^\w]+/g, '-');
 }
 
