@@ -1,3 +1,7 @@
+export async function sleep(s: number) {
+  return new Promise((resolve) => setTimeout(resolve, s * 1000));
+}
+
 export async function until<T>(
   condition: () => boolean | Promise<boolean>,
   attempt: () => T | Promise<T>,
@@ -5,10 +9,14 @@ export async function until<T>(
 ): Promise<T> {
   let result = await attempt();
   while (!condition()) {
-    await new Promise((resolve) => setTimeout(resolve, pause * 1000));
+    await sleep(pause);
     result = await attempt();
   }
   return result;
+}
+
+export function tap<T>(value: any, interceptor: (v: any) => T) {
+  return interceptor(value);
 }
 
 export function sanitizeDatabaseName(input: string) {

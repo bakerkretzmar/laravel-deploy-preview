@@ -1,141 +1,108 @@
-import { Server } from './forge.js';
-import { sanitizeDatabaseName } from './lib.js';
-
-type CreateConfig = {
-  name: string;
-  repository: string;
-  servers: { id: number; domain: string }[];
-  afterDeploy?: string;
-  environment?: Record<string, string>;
-  certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string };
-  info?: Function;
-  debug?: Function;
-  local?: boolean;
-};
-
-type DestroyConfig = {
-  name: string;
-  servers: Array<{ id: number; domain: string }>;
-  info?: Function;
-  debug?: Function;
-  local?: boolean;
-};
-
-type DeployPreview = {
-  url: string;
-};
+import * as core from '@actions/core';
+import { Forge, Site } from './forge.js';
+import { sanitizeDatabaseName, tap } from './lib.js';
 
 export async function createPreview({
-  name,
+  branch,
   repository,
   servers,
   afterDeploy = '',
   environment = {},
   certificate,
-  info = console.log,
-  debug = console.log,
-  local = false,
-}: CreateConfig): Promise<DeployPreview | undefined> {
-  debug(`Loading server with ID ${servers[0].id}`);
-  const server = await Server.fetch(servers[0].id, servers[0].domain);
-  // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
-  debug(`Loading sites for server ${server.id}`);
-  await server.loadSites();
+}: {
+  branch: string;
+  repository: string;
+  servers: { id: number; domain: string }[];
+  afterDeploy?: string;
+  environment?: Record<string, string>;
+  certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string };
+}) {
+  core.info(`Creating preview site for branch: ${branch}.`);
 
-  debug(`Checking for site named '${name}'`);
-  const extantSite = server.sites?.find((site) => site.name === name);
+  const siteName = `${branch}.${servers[0].domain}`;
 
-  if (extantSite) {
-    // re-use existing site
-    info('Site exists');
-  } else {
-    const database = sanitizeDatabaseName(name);
-    debug(`Sanitized database name: '${database}'`);
+  let site = tap(
+    (await Forge.listSites(servers[0].id)).find((site) => site.name === siteName),
+    (site) => (site ? new Site(site) : undefined),
+  );
 
-    info(`Creating new deploy preview site named '${name}'`);
-    const site = await server.createSite(name, database);
-    info('Site created!');
-
-    if (certificate?.type === 'existing') {
-      info('Installing SSL certificate');
-      await site.installExistingCertificate(certificate.certificate, certificate.key);
-      info('SSL certificate installed!');
-    } else if (certificate?.type === 'clone') {
-      info('Cloning SSL certificate');
-      await site.cloneExistingCertificate(Number(certificate.certificate));
-      info('SSL certificate cloned!');
-    } else {
-      info('Obtaining SSL certificate');
-      await site.obtainCertificate();
-      info('SSL certificate obtained!');
-    }
-
-    info(`Installing '${repository}' Git repository in site`);
-    await site.installRepository(repository, local ? 'main' : name);
-    info('Repository installed!');
-
-    info('Updating .env file');
-    await site.setEnvironmentVariables({
-      DB_DATABASE: database,
-      ...environment,
-    });
-    info('Updated .env file!');
-
-    info('Setting up scheduler');
-    await site.installScheduler();
-    info('Scheduled job command set up!');
-
-    if (afterDeploy) {
-      info('Updating deploy script');
-      await site.appendToDeployScript(afterDeploy);
-      info('Updated deploy script!');
-    }
-
-    info('Enabling Quick Deploy');
-    await site.enableQuickDeploy();
-    info('Quick Deploy enabled!');
-
-    info('Deploying site');
-    await site.deploy();
-    info('Site deployed!');
-
-    info('Cleaning up...');
-
-    debug('Ensuring SSL certificate activated');
-    await site.ensureCertificateActivated();
-
-    return { url: `https://${site.name}` };
+  if (site) {
+    core.info(`Site exists: ${site.name}`);
+    return;
   }
+
+  core.info(`Creating site: ${siteName}.`);
+  site = await Site.create(servers[0].id, siteName, sanitizeDatabaseName(branch));
+
+  if (certificate?.type === 'existing') {
+    core.info('Installing existing SSL certificate.');
+    await site.installCertificate(certificate.certificate, certificate.key);
+  } else if (certificate?.type === 'clone') {
+    core.info('Cloning existing SSL certificate.');
+    await site.cloneCertificate(certificate.certificate);
+  } else {
+    core.info('Requesting new SSL certificate.');
+    await site.createCertificate();
+  }
+
+  core.info(`Installing repository: ${repository}.`);
+  await site.installRepository(repository, branch);
+
+  core.info('Updating `.env` file.');
+  await site.setEnvironmentVariables({
+    DB_DATABASE: sanitizeDatabaseName(branch),
+    ...environment,
+  });
+
+  core.info('Installing scheduler.');
+  await site.installScheduler();
+
+  if (afterDeploy) {
+    core.info('Updating deploy script.');
+    await site.appendToDeployScript(afterDeploy);
+  }
+
+  core.info('Enabling Quick Deploy.');
+  await site.enableQuickDeploy();
+
+  core.info('Deploying site.');
+  await site.deploy();
+
+  core.info('Waiting for SSL certificate to be activated.');
+  await site.ensureCertificateActivated();
+
+  return { url: `https://${site.name}` };
 }
 
 export async function destroyPreview({
-  name,
+  branch,
   servers,
-  info = console.log,
-  debug = console.log,
-}: DestroyConfig): Promise<void> {
-  debug(`Loading server with ID ${servers[0].id}`);
-  const server = await Server.fetch(servers[0].id, servers[0].domain);
+}: {
+  branch: string;
+  servers: { id: number; domain: string }[];
+}) {
+  core.info(`Removing preview site: ${branch}.`);
 
-  debug(`Loading sites for server ${server.id}`);
-  await server.loadSites();
+  const siteName = `${branch}.${servers[0].domain}`;
 
-  debug(`Checking for site named '${name}'`);
-  const site = server.sites?.find((site) => site.name === `${name}.${server.domain}`);
+  const site = tap(
+    (await Forge.listSites(servers[0].id)).find((site) => site.name === `${siteName}`),
+    (site) => (site ? new Site(site) : undefined),
+  );
 
-  if (site) {
-    info('Site exists');
-
-    info('Cleaning up scheduler');
-    await site.uninstallScheduler();
-    info('Scheduled job command uninstalled!');
-
-    info('Deleting site');
-    await site.delete();
-    info('Site deleted!');
-
-    info('Deleting database');
-    await site.deleteDatabase(name.replace(/-/g, '_').replace(/[^\w_]/g, ''));
-    info('Database deleted!');
+  if (!site) {
+    core.warning(`Site not found: ${siteName}.`);
+    return;
   }
+
+  core.info(`Found site: ${site.name}.`);
+
+  core.info('Uninstalling scheduler.');
+  await site.uninstallScheduler();
+
+  core.info('Deleting site.');
+  await site.delete();
+
+  core.info('Deleting database.');
+  await site.deleteDatabase(sanitizeDatabaseName(branch));
 }

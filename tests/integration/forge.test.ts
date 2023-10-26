@@ -1,11 +1,14 @@
 import * as crypto from 'node:crypto';
-import { afterAll, describe, expect, test, vi } from 'vitest';
+import { afterAll, describe, expect, test } from 'vitest';
 import { Forge, ForgeError } from '../../src/forge';
 import { sanitizeDatabaseName, until } from '../../src/lib';
 
-// @ts-ignore
-Forge.setToken(import.meta.env.VITE_FORGE_TOKEN);
-// @ts-ignore
+// @ts-expect-error import.meta not set up
+Forge.token(import.meta.env.VITE_FORGE_TOKEN);
+// @ts-expect-error import.meta not set up
+Forge.debug(!!import.meta.env.VITE_FORGE_DEBUG);
+
+// @ts-expect-error import.meta not set up
 const server = Number(import.meta.env.VITE_FORGE_SERVER);
 
 function id() {
@@ -14,6 +17,7 @@ function id() {
 
 describe('sites', () => {
   afterAll(async () => {
+    Forge.debug(false);
     const sites = await Forge.listSites(server);
     const databases = await Forge.listDatabases(server);
     await Promise.all([
@@ -167,7 +171,7 @@ describe('sites', () => {
       async () => (site = await Forge.getSite(server, site.id)),
     );
 
-    let certificate = await Forge.obtainCertificate(server, site.id, name);
+    let certificate = await Forge.createCertificate(server, site.id, name);
 
     expect(certificate).toMatchObject({
       domain: name,
@@ -219,7 +223,7 @@ describe('sites', () => {
       async () => (site = await Forge.getSite(server, site.id)),
     );
 
-    let certificate = await Forge.installExistingCertificate(server, site.id, 'key', 'certificate');
+    let certificate = await Forge.installCertificate(server, site.id, 'key', 'certificate');
 
     expect(certificate).toMatchObject({
       domain: name,
@@ -282,7 +286,7 @@ describe('sites', () => {
       async () => (site = await Forge.getSite(server, site.id)),
     );
 
-    let certificate = await Forge.cloneExistingCertificate(server, site.id, cert);
+    let certificate = await Forge.cloneCertificate(server, site.id, cert);
 
     expect(certificate).toMatchObject({
       domain: name,

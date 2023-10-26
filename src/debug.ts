@@ -1,10 +1,12 @@
 import { config } from 'dotenv';
 import { Forge } from './forge.js';
+import * as core from '@actions/core';
 import { createPreview, destroyPreview } from './action.js';
 import { until } from './lib.js';
 
 config();
-Forge.setToken(process.env.FORGE_TOKEN!);
+Forge.token(process.env.FORGE_TOKEN!);
+Forge.debug();
 
 // await site.setEnvironmentVariables({
 //   FOO: 'bar',

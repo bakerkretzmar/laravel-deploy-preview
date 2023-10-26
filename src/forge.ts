@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { until } from './lib.js';
+import { sleep, until } from './lib.js';
 
 type ServerPayload = {
   id: number;
@@ -48,6 +48,7 @@ export class ForgeError extends Error {
 
 export class Forge {
   static #token: string;
+  static #debug: boolean;
   static #client?: AxiosInstance;
 
   static async listServers() {
@@ -149,7 +150,15 @@ export class Forge {
     return (await this.post<{ site: SitePayload }>(`servers/${server}/sites/${site}/deployment/deploy`)).data.site;
   }
 
-  static async installExistingCertificate(server: number, site: number, certificate: string, key: string) {
+  static async createCertificate(server: number, site: number, domain: string) {
+    return (
+      await this.post<{ certificate: CertificatePayload }>(`servers/${server}/sites/${site}/certificates/letsencrypt`, {
+        domains: [domain],
+      })
+    ).data.certificate;
+  }
+
+  static async installCertificate(server: number, site: number, certificate: string, key: string) {
     return (
       await this.post<{ certificate: CertificatePayload }>(`servers/${server}/sites/${site}/certificates`, {
         type: 'existing',
@@ -159,19 +168,11 @@ export class Forge {
     ).data.certificate;
   }
 
-  static async cloneExistingCertificate(server: number, site: number, certificate: number) {
+  static async cloneCertificate(server: number, site: number, certificate: number) {
     return (
       await this.post<{ certificate: CertificatePayload }>(`servers/${server}/sites/${site}/certificates`, {
         type: 'clone',
         certificate_id: certificate,
-      })
-    ).data.certificate;
-  }
-
-  static async obtainCertificate(server: number, site: number, domain: string) {
-    return (
-      await this.post<{ certificate: CertificatePayload }>(`servers/${server}/sites/${site}/certificates/letsencrypt`, {
-        domains: [domain],
       })
     ).data.certificate;
   }
@@ -191,11 +192,15 @@ export class Forge {
     await this.post(`servers/${server}/sites/${site}/certificates/${certificate}/activate`);
   }
 
-  static setToken(token: string): void {
+  static token(token: string) {
     this.#token = token;
   }
 
-  private static client(): AxiosInstance {
+  static debug(debug: boolean = true) {
+    this.#debug = debug;
+  }
+
+  private static client() {
     if (this.#client === undefined) {
       this.#client = axios.create({
         baseURL: 'https://forge.laravel.com/api/v1/',
@@ -204,18 +209,33 @@ export class Forge {
           'Authorization': `Bearer ${this.#token}`,
         },
       });
-      // this.#client.interceptors.request.use((config) => {
-      //   console.log(`${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
-      //   return config;
-      // });
-      this.#client.interceptors.response.use(undefined, async (error) => {
-        if (error.response?.status === 429) {
-          // console.warn('Rate-limited by Forge API, retrying in one second...');
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          return this.#client!.request(error.config);
+      this.#client.interceptors.request.use((config) => {
+        if (this.#debug) {
+          console.log(`${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+          if (config.data) {
+            console.log(JSON.stringify(config.data, null, 2));
+          }
         }
-        return Promise.reject(new ForgeError(error));
+        return config;
       });
+      this.#client.interceptors.response.use(
+        (response) => {
+          if (this.#debug && response.data) {
+            console.log(JSON.stringify(response.data, null, 2));
+          }
+          return response;
+        },
+        async (error) => {
+          if (error.response?.status === 429) {
+            if (this.#debug) {
+              console.warn('Rate-limited by Forge API, retrying in one second...');
+            }
+            await sleep(1);
+            return this.#client!.request(error.config);
+          }
+          return Promise.reject(new ForgeError(error));
+        },
+      );
     }
     return this.#client;
   }
@@ -234,37 +254,6 @@ export class Forge {
 
   private static delete<T = any>(path: string) {
     return this.client().delete<any, AxiosResponse<T, any>, any>(path);
-  }
-}
-
-export class Server {
-  id: number;
-  name: string;
-  domain: string;
-
-  sites?: Site[];
-
-  constructor(domain: string, data: ServerPayload) {
-    this.id = data.id;
-    this.name = data.name;
-    this.domain = domain;
-  }
-
-  static async fetch(id: number, domain: string) {
-    return new Server(domain, await Forge.getServer(id));
-  }
-
-  async loadSites() {
-    this.sites = (await Forge.listSites(this.id)).map((data) => new Site(data));
-  }
-
-  async createSite(subdomain: string, database: string) {
-    const site = new Site(await Forge.createSite(this.id, `${subdomain}.${this.domain}`, database));
-    await until(
-      () => site.status === 'installed',
-      async () => await site.refetch(),
-    );
-    return site;
   }
 }
 
@@ -287,6 +276,15 @@ export class Site {
     this.repository_status = data.repository_status;
     this.quick_deploy = data.quick_deploy;
     this.deployment_status = data.deployment_status;
+  }
+
+  static async create(server: number, name: string, database: string) {
+    let site = await Forge.createSite(server, name, database);
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+    return new Site(site);
   }
 
   async installRepository(repository: string, branch: string) {
@@ -317,9 +315,8 @@ export class Site {
   }
 
   async uninstallScheduler() {
-    const jobs = await Forge.listScheduledJobs(this.server_id);
     await Promise.all(
-      jobs
+      (await Forge.listScheduledJobs(this.server_id))
         .filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command))
         .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id)),
     );
@@ -331,16 +328,16 @@ export class Site {
     await Forge.updateDeployScript(this.server_id, this.id, `${script}\n${append}`);
   }
 
-  async obtainCertificate() {
-    this.certificate_id = (await Forge.obtainCertificate(this.server_id, this.id, this.name)).id;
+  async createCertificate() {
+    this.certificate_id = (await Forge.createCertificate(this.server_id, this.id, this.name)).id;
   }
 
-  async installExistingCertificate(certificate: string, key: string) {
-    this.certificate_id = (await Forge.installExistingCertificate(this.server_id, this.id, certificate, key)).id;
+  async installCertificate(certificate: string, key: string) {
+    this.certificate_id = (await Forge.installCertificate(this.server_id, this.id, certificate, key)).id;
   }
 
-  async cloneExistingCertificate(certificate: number) {
-    this.certificate_id = (await Forge.cloneExistingCertificate(this.server_id, this.id, certificate)).id;
+  async cloneCertificate(certificate: number) {
+    this.certificate_id = (await Forge.cloneCertificate(this.server_id, this.id, certificate)).id;
   }
 
   async ensureCertificateActivated() {

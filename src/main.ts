@@ -80,18 +80,17 @@ export async function run() {
 
     const pr = github.context.payload as PullRequestEvent;
 
-    Forge.setToken(forgeToken);
+    Forge.token(forgeToken);
+    Forge.debug(core.isDebug());
 
     if (pr.action === 'opened' || pr.action === 'reopened') {
       const preview = await createPreview({
-        name: pr.pull_request.head.ref,
+        branch: pr.pull_request.head.ref,
         repository: pr.repository.full_name,
         servers,
         afterDeploy,
         environment,
         certificate,
-        info: core.info,
-        debug: core.debug,
       });
 
       if (preview) {
@@ -105,10 +104,8 @@ export async function run() {
       }
     } else if (pr.action === 'closed') {
       await destroyPreview({
-        name: pr.pull_request.head.ref,
+        branch: pr.pull_request.head.ref,
         servers,
-        info: core.info,
-        debug: core.debug,
       });
     }
   } catch (error) {
