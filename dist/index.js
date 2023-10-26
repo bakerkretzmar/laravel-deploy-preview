@@ -37834,13 +37834,19 @@ axios.default = axios;
 /* harmony default export */ const lib_axios = (axios);
 
 ;// CONCATENATED MODULE: ./src/lib.ts
+async function sleep(s) {
+    return new Promise((resolve) => setTimeout(resolve, s * 1000));
+}
 async function until(condition, attempt, pause = 1) {
     let result = await attempt();
     while (!condition()) {
-        await new Promise((resolve) => setTimeout(resolve, pause * 1000));
+        await sleep(pause);
         result = await attempt();
     }
     return result;
+}
+function tap(value, interceptor) {
+    return interceptor(value);
 }
 function sanitizeDatabaseName(input) {
     return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
@@ -37880,6 +37886,7 @@ class ForgeError extends Error {
 }
 class Forge {
     static #token;
+    static #debug;
     static #client;
     static async listServers() {
         return (await this.get('servers')).data.servers;
@@ -37918,7 +37925,7 @@ class Forge {
             branch,
         })).data.site;
     }
-    // Not positive this returns a SitePayload
+    // TODO not positive this returns a SitePayload
     static async enableQuickDeploy(server, site) {
         return (await this.post(`servers/${server}/sites/${site}/deployment`)).data.site;
     }
@@ -37931,7 +37938,7 @@ class Forge {
     static async getEnvironmentFile(server, site) {
         return (await this.get(`servers/${server}/sites/${site}/env`)).data;
     }
-    // Not positive this returns a SitePayload
+    // TODO not positive this returns a SitePayload
     static async updateEnvironmentFile(server, site, content) {
         return (await this.put(`servers/${server}/sites/${site}/env`, { content })).data.site;
     }
@@ -37951,25 +37958,27 @@ class Forge {
     static async deploy(server, site) {
         return (await this.post(`servers/${server}/sites/${site}/deployment/deploy`)).data.site;
     }
-    static async installExistingCertificate(server, site, certificate, key) {
+    static async createCertificate(server, site, domain) {
+        return (await this.post(`servers/${server}/sites/${site}/certificates/letsencrypt`, {
+            domains: [domain],
+        })).data.certificate;
+    }
+    static async installCertificate(server, site, certificate, key) {
         return (await this.post(`servers/${server}/sites/${site}/certificates`, {
             type: 'existing',
             certificate,
             key,
         })).data.certificate;
     }
-    static async cloneExistingCertificate(server, site, certificate) {
+    static async cloneCertificate(server, site, certificate) {
         return (await this.post(`servers/${server}/sites/${site}/certificates`, {
             type: 'clone',
             certificate_id: certificate,
         })).data.certificate;
     }
-    static async obtainCertificate(server, site, domain) {
-        return (await this.post(`servers/${server}/sites/${site}/certificates/letsencrypt`, { domains: [domain] })).data
-            .certificate;
-    }
     static async listCertificates(server, site) {
-        return (await this.get(`servers/${server}/sites/${site}/certificates`)).data.certificates;
+        return (await this.get(`servers/${server}/sites/${site}/certificates`)).data
+            .certificates;
     }
     static async getCertificate(server, site, certificate) {
         return (await this.get(`servers/${server}/sites/${site}/certificates/${certificate}`)).data.certificate;
@@ -37977,8 +37986,11 @@ class Forge {
     static async activateCertificate(server, site, certificate) {
         await this.post(`servers/${server}/sites/${site}/certificates/${certificate}/activate`);
     }
-    static setToken(token) {
+    static token(token) {
         this.#token = token;
+    }
+    static debug(debug = true) {
+        this.#debug = debug;
     }
     static client() {
         if (this.#client === undefined) {
@@ -37989,7 +38001,30 @@ class Forge {
                     'Authorization': `Bearer ${this.#token}`,
                 },
             });
-            this.#client.interceptors.response.use((response) => response, (error) => Promise.reject(new ForgeError(error)));
+            this.#client.interceptors.request.use((config) => {
+                if (this.#debug) {
+                    console.log(`${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+                    if (config.data) {
+                        console.log(JSON.stringify(config.data, null, 2));
+                    }
+                }
+                return config;
+            });
+            this.#client.interceptors.response.use((response) => {
+                if (this.#debug && response.data) {
+                    console.log(JSON.stringify(response.data, null, 2));
+                }
+                return response;
+            }, async (error) => {
+                if (error.response?.status === 429) {
+                    if (this.#debug) {
+                        console.warn('Rate-limited by Forge API, retrying in one second...');
+                    }
+                    await sleep(1);
+                    return this.#client.request(error.config);
+                }
+                return Promise.reject(new ForgeError(error));
+            });
         }
         return this.#client;
     }
@@ -38004,28 +38039,6 @@ class Forge {
     }
     static delete(path) {
         return this.client().delete(path);
-    }
-}
-class Server {
-    id;
-    name;
-    domain;
-    sites;
-    constructor(domain, data) {
-        this.id = data.id;
-        this.name = data.name;
-        this.domain = domain;
-    }
-    static async fetch(id, domain) {
-        return new Server(domain, await Forge.getServer(id));
-    }
-    async loadSites() {
-        this.sites = (await Forge.listSites(this.id)).map((data) => new Site(data));
-    }
-    async createSite(subdomain, database) {
-        const site = new Site(await Forge.createSite(this.id, `${subdomain}.${this.domain}`, database));
-        await until(() => site.status === 'installed', async () => await site.refetch());
-        return site;
     }
 }
 class Site {
@@ -38045,6 +38058,11 @@ class Site {
         this.repository_status = data.repository_status;
         this.quick_deploy = data.quick_deploy;
         this.deployment_status = data.deployment_status;
+    }
+    static async create(server, name, database) {
+        let site = await Forge.createSite(server, name, database);
+        await until(() => site.status === 'installed', async () => (site = await Forge.getSite(server, site.id)));
+        return new Site(site);
     }
     async installRepository(repository, branch) {
         await Forge.createGitProject(this.server_id, this.id, repository, branch);
@@ -38068,8 +38086,7 @@ class Site {
         await Forge.createScheduledJob(this.server_id, `php /home/forge/${this.name}/artisan schedule:run`);
     }
     async uninstallScheduler() {
-        const jobs = await Forge.listScheduledJobs(this.server_id);
-        await Promise.all(jobs
+        await Promise.all((await Forge.listScheduledJobs(this.server_id))
             .filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command))
             .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id)));
     }
@@ -38078,14 +38095,14 @@ class Site {
         // TODO does this take time to 'install'? If so what do we wait for?
         await Forge.updateDeployScript(this.server_id, this.id, `${script}\n${append}`);
     }
-    async obtainCertificate() {
-        this.certificate_id = (await Forge.obtainCertificate(this.server_id, this.id, this.name)).id;
+    async createCertificate() {
+        this.certificate_id = (await Forge.createCertificate(this.server_id, this.id, this.name)).id;
     }
-    async installExistingCertificate(certificate, key) {
-        this.certificate_id = (await Forge.installExistingCertificate(this.server_id, this.id, certificate, key)).id;
+    async installCertificate(certificate, key) {
+        this.certificate_id = (await Forge.installCertificate(this.server_id, this.id, certificate, key)).id;
     }
-    async cloneExistingCertificate(certificate) {
-        this.certificate_id = (await Forge.cloneExistingCertificate(this.server_id, this.id, certificate)).id;
+    async cloneCertificate(certificate) {
+        this.certificate_id = (await Forge.cloneCertificate(this.server_id, this.id, certificate)).id;
     }
     async ensureCertificateActivated() {
         if (this.certificate_id) {
@@ -38132,87 +38149,65 @@ class Site {
 ;// CONCATENATED MODULE: ./src/action.ts
 
 
-async function createPreview({ name, repository, servers, afterDeploy = '', environment = {}, certificate, info = console.log, debug = console.log, local = false, }) {
-    debug(`Loading server with ID ${servers[0].id}`);
-    const server = await Server.fetch(servers[0].id, servers[0].domain);
-    // const sites = (await Promise.all(servers.map(async (server) => await Forge.sites(server.id)))).flat();
-    debug(`Loading sites for server ${server.id}`);
-    await server.loadSites();
-    debug(`Checking for site named '${name}'`);
-    const extantSite = server.sites?.find((site) => site.name === name);
-    if (extantSite) {
-        // re-use existing site
-        info('Site exists');
+
+async function createPreview({ branch, repository, servers, afterDeploy = '', environment = {}, certificate, }) {
+    core.info(`Creating preview site for branch: ${branch}.`);
+    const siteName = `${branch}.${servers[0].domain}`;
+    let site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === siteName), (site) => (site ? new Site(site) : undefined));
+    if (site) {
+        core.info(`Site exists: ${site.name}`);
+        return;
+    }
+    core.info(`Creating site: ${siteName}.`);
+    site = await Site.create(servers[0].id, siteName, sanitizeDatabaseName(branch));
+    if (certificate?.type === 'existing') {
+        core.info('Installing existing SSL certificate.');
+        await site.installCertificate(certificate.certificate, certificate.key);
+    }
+    else if (certificate?.type === 'clone') {
+        core.info('Cloning existing SSL certificate.');
+        await site.cloneCertificate(certificate.certificate);
     }
     else {
-        const database = sanitizeDatabaseName(name);
-        debug(`Sanitized database name: '${database}'`);
-        info(`Creating new deploy preview site named '${name}'`);
-        const site = await server.createSite(name, database);
-        info('Site created!');
-        if (certificate?.type === 'existing') {
-            info('Installing SSL certificate');
-            await site.installExistingCertificate(certificate.certificate, certificate.key);
-            info('SSL certificate installed!');
-        }
-        else if (certificate?.type === 'clone') {
-            info('Cloning SSL certificate');
-            await site.cloneExistingCertificate(Number(certificate.certificate));
-            info('SSL certificate cloned!');
-        }
-        else {
-            info('Obtaining SSL certificate');
-            await site.obtainCertificate();
-            info('SSL certificate obtained!');
-        }
-        info(`Installing '${repository}' Git repository in site`);
-        await site.installRepository(repository, local ? 'main' : name);
-        info('Repository installed!');
-        info('Updating .env file');
-        await site.setEnvironmentVariables({
-            DB_DATABASE: database,
-            ...environment,
-        });
-        info('Updated .env file!');
-        info('Setting up scheduler');
-        await site.installScheduler();
-        info('Scheduled job command set up!');
-        if (afterDeploy) {
-            info('Updating deploy script');
-            await site.appendToDeployScript(afterDeploy);
-            info('Updated deploy script!');
-        }
-        info('Enabling Quick Deploy');
-        await site.enableQuickDeploy();
-        info('Quick Deploy enabled!');
-        info('Deploying site');
-        await site.deploy();
-        info('Site deployed!');
-        info('Cleaning up...');
-        debug('Ensuring SSL certificate activated');
-        await site.ensureCertificateActivated();
-        return { url: `https://${site.name}` };
+        core.info('Requesting new SSL certificate.');
+        await site.createCertificate();
     }
+    core.info(`Installing repository: ${repository}.`);
+    await site.installRepository(repository, branch);
+    core.info('Updating `.env` file.');
+    await site.setEnvironmentVariables({
+        DB_DATABASE: sanitizeDatabaseName(branch),
+        ...environment,
+    });
+    core.info('Installing scheduler.');
+    await site.installScheduler();
+    if (afterDeploy) {
+        core.info('Updating deploy script.');
+        await site.appendToDeployScript(afterDeploy);
+    }
+    core.info('Enabling Quick Deploy.');
+    await site.enableQuickDeploy();
+    core.info('Deploying site.');
+    await site.deploy();
+    core.info('Waiting for SSL certificate to be activated.');
+    await site.ensureCertificateActivated();
+    return { url: `https://${site.name}` };
 }
-async function destroyPreview({ name, servers, info = console.log, debug = console.log, }) {
-    debug(`Loading server with ID ${servers[0].id}`);
-    const server = await Server.fetch(servers[0].id, servers[0].domain);
-    debug(`Loading sites for server ${server.id}`);
-    await server.loadSites();
-    debug(`Checking for site named '${name}'`);
-    const site = server.sites?.find((site) => site.name === `${name}.${server.domain}`);
-    if (site) {
-        info('Site exists');
-        info('Cleaning up scheduler');
-        await site.uninstallScheduler();
-        info('Scheduled job command uninstalled!');
-        info('Deleting site');
-        await site.delete();
-        info('Site deleted!');
-        info('Deleting database');
-        await site.deleteDatabase(name.replace(/-/g, '_').replace(/[^\w_]/g, ''));
-        info('Database deleted!');
+async function destroyPreview({ branch, servers, }) {
+    core.info(`Removing preview site: ${branch}.`);
+    const siteName = `${branch}.${servers[0].domain}`;
+    const site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === `${siteName}`), (site) => (site ? new Site(site) : undefined));
+    if (!site) {
+        core.warning(`Site not found: ${siteName}.`);
+        return;
     }
+    core.info(`Found site: ${site.name}.`);
+    core.info('Uninstalling scheduler.');
+    await site.uninstallScheduler();
+    core.info('Deleting site.');
+    await site.delete();
+    core.info('Deleting database.');
+    await site.deleteDatabase(sanitizeDatabaseName(branch));
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -38273,17 +38268,16 @@ async function run() {
                 }
                 : undefined;
         const pr = github.context.payload;
-        Forge.setToken(forgeToken);
+        Forge.token(forgeToken);
+        Forge.debug(core.isDebug());
         if (pr.action === 'opened' || pr.action === 'reopened') {
             const preview = await createPreview({
-                name: pr.pull_request.head.ref,
+                branch: pr.pull_request.head.ref,
                 repository: pr.repository.full_name,
                 servers,
                 afterDeploy,
                 environment,
                 certificate,
-                info: core.info,
-                debug: core.debug,
             });
             if (preview) {
                 const octokit = github.getOctokit(githubToken);
@@ -38297,10 +38291,8 @@ async function run() {
         }
         else if (pr.action === 'closed') {
             await destroyPreview({
-                name: pr.pull_request.head.ref,
+                branch: pr.pull_request.head.ref,
                 servers,
-                info: core.info,
-                debug: core.debug,
             });
         }
     }
