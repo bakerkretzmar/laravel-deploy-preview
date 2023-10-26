@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { sanitizeDatabaseName, sanitizeDomainName, until } from '../../src/lib';
+import { normalizeDatabaseName, normalizeDomainName, until } from '../../src/lib';
 
 describe('until', () => {
   test('run attempt callback once immediately', async () => {
@@ -48,25 +48,31 @@ describe('until', () => {
   });
 });
 
-describe('sanitizeDatabaseName', () => {
+describe('normalizeDatabaseName', () => {
   test.each([
     ['foo_bar', 'foo_bar'],
     ['foo-bar', 'foo_bar'],
     ['foo--bar', 'foo_bar'],
+    ['--foo--bar--', 'foo_bar'],
     ['foo%-bar', 'foo_bar'],
     ['one! two? three 0x995', 'one_two_three_0x995'],
+    ['jbk/px-454', 'jbk_px_454'],
+    ["please+don't %20 do / this", 'please_don_t_20_do_this'],
   ])('%s → %s', (input, output) => {
-    expect(sanitizeDatabaseName(input)).toBe(output);
+    expect(normalizeDatabaseName(input)).toBe(output);
   });
 });
 
-describe('sanitizeDomainName', () => {
+describe('normalizeDomainName', () => {
   test.each([
     ['foo-bar', 'foo-bar'],
+    ['-foo--bar--', 'foo-bar'],
     ['foo__bar', 'foo__bar'],
     ['foo%-bar', 'foo-bar'],
     ['one! two? three 0x995', 'one-two-three-0x995'],
+    ['jbk/px-454', 'jbk-px-454'],
+    ["please+don't %20 do / this", 'please-don-t-20-do-this'],
   ])('%s → %s', (input, output) => {
-    expect(sanitizeDomainName(input)).toBe(output);
+    expect(normalizeDomainName(input)).toBe(output);
   });
 });

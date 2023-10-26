@@ -19,12 +19,12 @@ export function tap<T>(value: any, interceptor: (v: any) => T) {
   return interceptor(value);
 }
 
-export function sanitizeDatabaseName(input: string) {
-  return input.replace(/[-\s]+/g, '_').replace(/[^\w_]/g, '');
+export function normalizeDatabaseName(input: string) {
+  return input.replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
 }
 
-export function sanitizeDomainName(input: string) {
-  return input.replace(/[^\w]+/g, '-');
+export function normalizeDomainName(input: string) {
+  return input.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
 }
 
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
