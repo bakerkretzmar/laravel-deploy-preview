@@ -58,6 +58,7 @@ describe('normalizeDatabaseName', () => {
     ['one! two? three 0x995', 'one_two_three_0x995'],
     ['jbk/px-454', 'jbk_px_454'],
     ["please+don't %20 do / this", 'please_don_t_20_do_this'],
+    ['a'.repeat(65), 'a'.repeat(64)],
   ])('%s → %s', (input, output) => {
     expect(normalizeDatabaseName(input)).toBe(output);
   });
@@ -72,6 +73,7 @@ describe('normalizeDomainName', () => {
     ['one! two? three 0x995', 'one-two-three-0x995'],
     ['jbk/px-454', 'jbk-px-454'],
     ["please+don't %20 do / this", 'please-don-t-20-do-this'],
+    ['a'.repeat(65), 'a'.repeat(63)],
   ])('%s → %s', (input, output) => {
     expect(normalizeDomainName(input)).toBe(output);
   });
