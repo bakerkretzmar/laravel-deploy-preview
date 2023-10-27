@@ -31,9 +31,18 @@ Before adding this action to your workflows, make sure you have:
 - A [wildcard subdomain DNS record](https://en.wikipedia.org/wiki/Wildcard_DNS_record) pointing to your Forge server.
 - A Forge [API token](https://forge.laravel.com/docs/1.0/accounts/api.html#create-api-token).
 
-## Usage
+## :warning: Security
 
-> **Warning**: This action has direct access to your Laravel Forge account and should only be used in trusted contexts. Anyone who can push to a GitHub repository using this action will be able to execute code on the connected Forge servers.
+**This action will have direct access to your Laravel Forge account and should only be used in trusted contexts.** Users who have permission to push to a repository using this action will be able to execute arbitrary code on any connected Forge servers.
+
+To help ensure that this action runs securely and in isolation:
+
+- Create a new Forge API token for this action to use, and don't use that token anywhere else, so that it's easy to rotate or revoke if necessary.
+- Use a dedicated Forge server for deploy previews. This action can be destructive, so nothing critical (e.g. production data) should be hosted on the same server it uses.
+
+Please enjoy responsibly!
+
+## Usage
 
 Add your Forge API token as an [Actions Secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `bakerkretzmar/laravel-deploy-preview` inside any workflow.
 
