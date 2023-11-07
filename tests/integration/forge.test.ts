@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto';
 import { afterAll, describe, expect, test } from 'vitest';
 import { Forge, ForgeError } from '../../src/forge';
-import { normalizeDatabaseName, until } from '../../src/lib';
+import { normalizeDatabaseName, until, updateDotEnvString } from '../../src/lib';
 
 // @ts-expect-error import.meta not set up
 Forge.token(import.meta.env.VITE_FORGE_TOKEN);
@@ -127,38 +127,6 @@ describe('sites', () => {
     }
 
     expect.assertions(3);
-  });
-
-  // Needs a repo or smth installed first or Forge 500s
-  test.todo('enable quick deploy', async () => {
-    const name = `test-${id()}.laravel-deploy-preview.com`;
-
-    let site = await Forge.createSite(server, name, '');
-
-    expect(site).toMatchObject({
-      server_id: server,
-      name: name,
-      status: 'installing',
-    });
-
-    await until(
-      () => site.status === 'installed',
-      async () => (site = await Forge.getSite(server, site.id)),
-    );
-
-    expect(site).toMatchObject({
-      server_id: server,
-      name: name,
-      status: 'installed',
-    });
-
-    site = await Forge.enableQuickDeploy(server, site.id);
-
-    expect(site).toMatchObject({
-      server_id: server,
-      name: name,
-      quick_deploy: 'true',
-    });
   });
 
   test('create SSL certificate', async () => {
@@ -373,5 +341,126 @@ describe('sites', () => {
       activation_status: 'activated',
       active: true,
     });
+  });
+
+  test.todo('install repository');
+
+  test.todo('enable quick deploy');
+  // site = await Forge.enableQuickDeploy(server, site.id);
+  // expect(site).toMatchObject({
+  //   server_id: server,
+  //   name: name,
+  //   quick_deploy: 'true',
+  // });
+
+  test('handle failing to enable quick deploy', async () => {
+    const name = `test-${id()}.laravel-deploy-preview.com`;
+
+    let site = await Forge.createSite(server, name, '');
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      status: 'installing',
+    });
+
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      status: 'installed',
+    });
+
+    try {
+      await Forge.enableQuickDeploy(server, site.id);
+    } catch (e) {
+      expect(e).toBeInstanceOf(ForgeError);
+      expect(e.message).toBe('Forge API request failed with status code 400.');
+      expect(e.data).toMatchObject({
+        message: 'The site does not yet have an application installed. Please install an application and try again.',
+      });
+    }
+
+    expect.assertions(5);
+  });
+
+  test.todo('update environment file');
+
+  test.todo('deploy site');
+
+  test.todo('run command');
+
+  test.todo('handle failed command');
+  // status will be 'failed'
+
+  test('use sqlite', async () => {
+    const name = `test-${id()}.laravel-deploy-preview.com`;
+
+    let site = await Forge.createSite(server, name, '');
+
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    await Forge.createGitProject(server, site.id, 'bakerkretzmar/laravel-deploy-preview-app', 'main');
+
+    await until(
+      () => site.repository_status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+      3,
+    );
+
+    const env = await Forge.getEnvironmentFile(server, site.id);
+
+    await Forge.updateEnvironmentFile(
+      server,
+      site.id,
+      updateDotEnvString(env, {
+        DB_CONNECTION: 'sqlite',
+        DB_DATABASE: undefined,
+      }),
+    );
+
+    let command1 = await Forge.runCommand(server, site.id, 'ls database');
+    let output1 = '';
+
+    await until(
+      () => command1.status === 'finished',
+      async () => ({ command: command1, output: output1 } = await Forge.getCommand(server, site.id, command1.id)),
+    );
+
+    expect(output1).not.toContain('database.sqlite');
+
+    await Forge.deploy(server, site.id);
+
+    await until(
+      () => site.deployment_status === null,
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    let command2 = await Forge.runCommand(server, site.id, 'ls database');
+    let output2 = '';
+
+    await until(
+      () => command2.status === 'finished',
+      async () => ({ command: command2, output: output2 } = await Forge.getCommand(server, site.id, command2.id)),
+    );
+
+    expect(output2).toContain('database.sqlite');
+
+    let command3 = await Forge.runCommand(server, site.id, 'php artisan db:monitor --databases=sqlite');
+    let output3 = '';
+
+    await until(
+      () => command3.status === 'finished',
+      async () => ({ command: command3, output: output3 } = await Forge.getCommand(server, site.id, command3.id)),
+    );
+
+    expect(output3).toMatch(/sqlite \.+ \[\] OK/);
   });
 });
