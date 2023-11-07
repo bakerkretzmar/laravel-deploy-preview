@@ -163,6 +163,22 @@ Example:
     clone-certificate: 90051
 ```
 
+### Databases
+
+This action creates a new database for each preview site and deletes the database when the preview site is deleted. If your Forge server has one of the default supported database engines installed (MySQL, MariaDB, or PostgreSQL), that database engine will be used and no additional configuration is necessary.
+
+To use SQLite, set your preview sites’ `DB_CONNECTION` environment variable to `sqlite` using [the `environment` input](#environment):
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    environment: |
+      DB_CONNECTION=sqlite
+```
+
 ## Development
 
 This action is loosely based on GitHub's [hello-world-javascript-action](https://github.com/actions/hello-world-javascript-action) and [typescript-action](https://github.com/actions/typescript-action) templates. It's written in TypeScript and compiled with [`ncc`](https://github.com/vercel/ncc) into a single JavaScript file.
