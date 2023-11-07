@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { sleep, until } from './lib.js';
+import { sleep, until, updateDotEnvString } from './lib.js';
 
 type ServerPayload = {
   id: number;
@@ -308,16 +308,9 @@ export class Site {
     );
   }
 
-  async setEnvironmentVariables(variables: Record<string, string>) {
-    let env = await Forge.getEnvironmentFile(this.server_id, this.id);
-    Object.entries(variables).map(([key, value]) => {
-      if (new RegExp(`${key}=`).test(env)) {
-        env = env.replace(new RegExp(`${key}=.*`), `${key}=${value}`);
-      } else {
-        env += `\n${key}=${value}\n`;
-      }
-    });
-    await Forge.updateEnvironmentFile(this.server_id, this.id, env);
+  async setEnvironmentVariables(variables: Record<string, string | undefined>) {
+    const env = await Forge.getEnvironmentFile(this.server_id, this.id);
+    await Forge.updateEnvironmentFile(this.server_id, this.id, updateDotEnvString(env, variables));
   }
 
   async installScheduler() {
