@@ -106,6 +106,7 @@ export async function run() {
       await destroyPreview({
         branch: pr.pull_request.head.ref,
         servers,
+        environment,
       });
     }
   } catch (error) {
