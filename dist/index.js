@@ -37849,10 +37849,24 @@ function tap(value, interceptor) {
     return interceptor(value);
 }
 function normalizeDatabaseName(input) {
-    return input.replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
+    return input
+        .replace(/[\W_]+/g, '_')
+        .substring(0, 64)
+        .replace(/^_|_$/g, '');
 }
 function normalizeDomainName(input) {
-    return input.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+    return input.replace(/\W+/g, '-').substring(0, 63).replace(/^-|-$/g, '');
+}
+function updateDotEnvString(env, variables) {
+    Object.entries(variables).map(([key, value]) => {
+        if (new RegExp(`${key}=`).test(env)) {
+            env = env.replace(new RegExp(`${key}=.*\n?`), value === undefined ? '' : `${key}=${value}\n`);
+        }
+        else {
+            env += `\n${key}=${value}\n`;
+        }
+    });
+    return env;
 }
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
 //   const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
@@ -37988,6 +38002,13 @@ class Forge {
     static async activateCertificate(server, site, certificate) {
         await this.post(`servers/${server}/sites/${site}/certificates/${certificate}/activate`);
     }
+    static async runCommand(server, site, command) {
+        return (await this.post(`servers/${server}/sites/${site}/commands`, { command })).data
+            .command;
+    }
+    static async getCommand(server, site, command) {
+        return (await this.get(`servers/${server}/sites/${site}/commands/${command}`)).data;
+    }
     static token(token) {
         this.#token = token;
     }
@@ -38079,16 +38100,8 @@ class Site {
         await until(() => this.repository_status !== 'installing', async () => this.refetch(), 3);
     }
     async setEnvironmentVariables(variables) {
-        let env = await Forge.getEnvironmentFile(this.server_id, this.id);
-        Object.entries(variables).map(([key, value]) => {
-            if (new RegExp(`${key}=`).test(env)) {
-                env = env.replace(new RegExp(`${key}=.*`), `${key}=${value}`);
-            }
-            else {
-                env += `\n${key}=${value}\n`;
-            }
-        });
-        await Forge.updateEnvironmentFile(this.server_id, this.id, env);
+        const env = await Forge.getEnvironmentFile(this.server_id, this.id);
+        await Forge.updateEnvironmentFile(this.server_id, this.id, updateDotEnvString(env, variables));
     }
     async installScheduler() {
         await Forge.createScheduledJob(this.server_id, `php /home/forge/${this.name}/artisan schedule:run`);
@@ -38167,7 +38180,7 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
         return;
     }
     core.info(`Creating site: ${siteName}.`);
-    site = await Site.create(servers[0].id, siteName, normalizeDatabaseName(branch));
+    site = await Site.create(servers[0].id, siteName, environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch));
     if (certificate?.type === 'existing') {
         core.info('Installing existing SSL certificate.');
         await site.installCertificate(certificate.certificate, certificate.key);
@@ -38182,9 +38195,19 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
     }
     core.info(`Installing repository: ${repository}.`);
     await site.installRepository(repository, branch);
+    const sqliteEnvironment = environment.DB_CONNECTION === 'sqlite'
+        ? {
+            DB_HOST: undefined,
+            DB_PORT: undefined,
+            DB_DATABASE: undefined,
+            DB_USERNAME: undefined,
+            DB_PASSWORD: undefined,
+        }
+        : {};
     core.info('Updating `.env` file.');
     await site.setEnvironmentVariables({
         DB_DATABASE: normalizeDatabaseName(branch),
+        ...sqliteEnvironment,
         ...environment,
     });
     core.info('Installing scheduler.');
@@ -38201,7 +38224,7 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
     await site.ensureCertificateActivated();
     return { url: `https://${site.name}` };
 }
-async function destroyPreview({ branch, servers, }) {
+async function destroyPreview({ branch, servers, environment = {}, }) {
     core.info(`Removing preview site: ${branch}.`);
     const siteName = `${normalizeDomainName(branch)}.${servers[0].domain}`;
     const site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === `${siteName}`), (site) => (site ? new Site(site) : undefined));
@@ -38214,8 +38237,10 @@ async function destroyPreview({ branch, servers, }) {
     await site.uninstallScheduler();
     core.info('Deleting site.');
     await site.delete();
-    core.info('Deleting database.');
-    await site.deleteDatabase(normalizeDatabaseName(branch));
+    if (environment.DB_CONNECTION !== 'sqlite') {
+        core.info('Deleting database.');
+        await site.deleteDatabase(normalizeDatabaseName(branch));
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -38301,6 +38326,7 @@ async function run() {
             await destroyPreview({
                 branch: pr.pull_request.head.ref,
                 servers,
+                environment,
             });
         }
     }
