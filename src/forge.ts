@@ -34,6 +34,13 @@ type DatabasePayload = {
   name: string;
 };
 
+type CommandPayload = {
+  id: number;
+  command: string;
+  status: string;
+  duration: string;
+};
+
 export class ForgeError extends Error {
   axiosError: AxiosError;
   data?: unknown;
@@ -192,6 +199,17 @@ export class Forge {
 
   static async activateCertificate(server: number, site: number, certificate: number) {
     await this.post(`servers/${server}/sites/${site}/certificates/${certificate}/activate`);
+  }
+
+  static async runCommand(server: number, site: number, command: string) {
+    return (await this.post<{ command: CommandPayload }>(`servers/${server}/sites/${site}/commands`, { command })).data
+      .command;
+  }
+
+  static async getCommand(server: number, site: number, command: number) {
+    return (
+      await this.get<{ command: CommandPayload; output: string }>(`servers/${server}/sites/${site}/commands/${command}`)
+    ).data;
   }
 
   static token(token: string) {
