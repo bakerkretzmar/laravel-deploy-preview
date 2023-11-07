@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { sleep, until } from './lib.js';
+import { sleep, until, updateDotEnvString } from './lib.js';
 
 type ServerPayload = {
   id: number;
@@ -32,6 +32,13 @@ type CertificatePayload = {
 type DatabasePayload = {
   id: number;
   name: string;
+};
+
+type CommandPayload = {
+  id: number;
+  command: string;
+  status: string;
+  duration: string;
 };
 
 export class ForgeError extends Error {
@@ -194,6 +201,17 @@ export class Forge {
     await this.post(`servers/${server}/sites/${site}/certificates/${certificate}/activate`);
   }
 
+  static async runCommand(server: number, site: number, command: string) {
+    return (await this.post<{ command: CommandPayload }>(`servers/${server}/sites/${site}/commands`, { command })).data
+      .command;
+  }
+
+  static async getCommand(server: number, site: number, command: number) {
+    return (
+      await this.get<{ command: CommandPayload; output: string }>(`servers/${server}/sites/${site}/commands/${command}`)
+    ).data;
+  }
+
   static token(token: string) {
     this.#token = token;
   }
@@ -308,16 +326,9 @@ export class Site {
     );
   }
 
-  async setEnvironmentVariables(variables: Record<string, string>) {
-    let env = await Forge.getEnvironmentFile(this.server_id, this.id);
-    Object.entries(variables).map(([key, value]) => {
-      if (new RegExp(`${key}=`).test(env)) {
-        env = env.replace(new RegExp(`${key}=.*`), `${key}=${value}`);
-      } else {
-        env += `\n${key}=${value}\n`;
-      }
-    });
-    await Forge.updateEnvironmentFile(this.server_id, this.id, env);
+  async setEnvironmentVariables(variables: Record<string, string | undefined>) {
+    const env = await Forge.getEnvironmentFile(this.server_id, this.id);
+    await Forge.updateEnvironmentFile(this.server_id, this.id, updateDotEnvString(env, variables));
   }
 
   async installScheduler() {

@@ -30,6 +30,17 @@ export function normalizeDomainName(input: string) {
   return input.replace(/\W+/g, '-').substring(0, 63).replace(/^-|-$/g, '');
 }
 
+export function updateDotEnvString(env: string, variables: Record<string, string | undefined>) {
+  Object.entries(variables).map(([key, value]) => {
+    if (new RegExp(`${key}=`).test(env)) {
+      env = env.replace(new RegExp(`${key}=.*\n?`), value === undefined ? '' : `${key}=${value}\n`);
+    } else {
+      env += `\n${key}=${value}\n`;
+    }
+  });
+  return env;
+}
+
 // function serverWithFewestSites(servers: Server[], sites: Site[]): Server {
 //   const serverSites = sites.reduce((carry: { [_: string]: number }, site: Site) => {
 //     carry[site.server_id] ??= 0;

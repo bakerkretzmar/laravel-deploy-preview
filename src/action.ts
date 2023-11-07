@@ -14,7 +14,7 @@ export async function createPreview({
   repository: string;
   servers: { id: number; domain: string }[];
   afterDeploy?: string;
-  environment?: Record<string, string>;
+  environment: Record<string, string>;
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string };
 }) {
   core.info(`Creating preview site for branch: ${branch}.`);
@@ -32,7 +32,11 @@ export async function createPreview({
   }
 
   core.info(`Creating site: ${siteName}.`);
-  site = await Site.create(servers[0].id, siteName, normalizeDatabaseName(branch));
+  site = await Site.create(
+    servers[0].id,
+    siteName,
+    environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch),
+  );
 
   if (certificate?.type === 'existing') {
     core.info('Installing existing SSL certificate.');
@@ -48,9 +52,21 @@ export async function createPreview({
   core.info(`Installing repository: ${repository}.`);
   await site.installRepository(repository, branch);
 
+  const sqliteEnvironment =
+    environment.DB_CONNECTION === 'sqlite'
+      ? {
+          DB_HOST: undefined,
+          DB_PORT: undefined,
+          DB_DATABASE: undefined,
+          DB_USERNAME: undefined,
+          DB_PASSWORD: undefined,
+        }
+      : {};
+
   core.info('Updating `.env` file.');
   await site.setEnvironmentVariables({
     DB_DATABASE: normalizeDatabaseName(branch),
+    ...sqliteEnvironment,
     ...environment,
   });
 
@@ -77,9 +93,11 @@ export async function createPreview({
 export async function destroyPreview({
   branch,
   servers,
+  environment = {},
 }: {
   branch: string;
   servers: { id: number; domain: string }[];
+  environment: Record<string, string>;
 }) {
   core.info(`Removing preview site: ${branch}.`);
 
@@ -103,6 +121,8 @@ export async function destroyPreview({
   core.info('Deleting site.');
   await site.delete();
 
-  core.info('Deleting database.');
-  await site.deleteDatabase(normalizeDatabaseName(branch));
+  if (environment.DB_CONNECTION !== 'sqlite') {
+    core.info('Deleting database.');
+    await site.deleteDatabase(normalizeDatabaseName(branch));
+  }
 }
