@@ -87,7 +87,7 @@ export async function createPreview({
   core.info('Waiting for SSL certificate to be activated.');
   await site.ensureCertificateActivated();
 
-  return { url: `https://${site.name}` };
+  return { url: `https://${site.name}`, id: site.id };
 }
 
 export async function destroyPreview({

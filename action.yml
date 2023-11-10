@@ -27,6 +27,11 @@ inputs:
   clone-certificate:
     description: Forge SSL certificate ID to clone to the preview site.
     required: false
+outputs:
+  site-url:
+    description: 'The URL of the site that was deployed.'
+  site-id:
+    description: 'The Forge ID of the site that was created.'
 runs:
   using: node20
   main: dist/index.js
