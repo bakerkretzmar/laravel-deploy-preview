@@ -94,6 +94,9 @@ export async function run() {
       });
 
       if (preview) {
+        core.setOutput('site-url', preview.url);
+        core.setOutput('site-id', preview.id);
+
         const octokit = github.getOctokit(githubToken);
         octokit.rest.issues.createComment({
           owner: pr.repository.owner.login,
