@@ -23,11 +23,12 @@ export function normalizeDatabaseName(input: string) {
   return input
     .replace(/[\W_]+/g, '_')
     .substring(0, 64)
-    .replace(/^_|_$/g, '');
+    .replace(/^_|_$/g, '')
+    .toLowerCase();
 }
 
 export function normalizeDomainName(input: string) {
-  return input.replace(/\W+/g, '-').substring(0, 63).replace(/^-|-$/g, '');
+  return input.replace(/\W+/g, '-').substring(0, 63).replace(/^-|-$/g, '').toLowerCase();
 }
 
 export function updateDotEnvString(env: string, variables: Record<string, string | undefined>) {
