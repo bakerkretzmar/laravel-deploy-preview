@@ -32,7 +32,7 @@ describe('sites', () => {
         }
       }),
     ]);
-  });
+  }, 60_000);
 
   test('create site', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
