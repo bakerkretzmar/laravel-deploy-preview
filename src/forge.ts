@@ -400,6 +400,13 @@ export class Site {
 
   async delete() {
     await Forge.deleteSite(this.server_id, this.id);
+    await until(
+      () => this.status !== 'removing',
+      async () =>
+        this.refetch().catch((err) => {
+          this.status = null;
+        }),
+    );
   }
 
   async refetch() {
