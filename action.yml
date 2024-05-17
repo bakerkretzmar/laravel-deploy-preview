@@ -38,3 +38,6 @@ outputs:
 runs:
   using: node20
   main: dist/index.js
+branding:
+  icon: 'eye'
+  color: 'red'
