@@ -133,4 +133,6 @@ export async function destroyPreview({
     core.info('Deleting database.');
     await site.deleteDatabase(normalizeDatabaseName(branch));
   }
+
+  return { id: site.id };
 }
