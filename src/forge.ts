@@ -231,7 +231,7 @@ export class Forge {
       });
       this.#client.interceptors.request.use((config) => {
         if (this.#debug) {
-          console.log(`${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+          console.log(`> ${config.method?.toUpperCase()} /${config.url}`);
           if (config.data) {
             console.log(JSON.stringify(config.data, null, 2));
           }
@@ -240,8 +240,15 @@ export class Forge {
       });
       this.#client.interceptors.response.use(
         (response) => {
-          if (this.#debug && response.data) {
-            console.log(JSON.stringify(response.data, null, 2));
+          if (this.#debug) {
+            console.log(
+              `< ${response.config.method?.toUpperCase()} /${response.config.url} ${response.status} ${
+                response.statusText
+              }`,
+            );
+            if (response.data) {
+              console.log(JSON.stringify(response.data, null, 2));
+            }
           }
           return response;
         },

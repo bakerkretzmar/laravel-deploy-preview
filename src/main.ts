@@ -42,8 +42,8 @@ export async function run() {
           !existingCertificate
             ? '`existing-certificate-key` provided but `existing-certificate` missing.'
             : !existingCertificateKey
-            ? '`existing-certificate` provided but `existing-certificate-key` missing'
-            : ''
+              ? '`existing-certificate` provided but `existing-certificate-key` missing'
+              : ''
         }`,
       );
     }
@@ -71,12 +71,12 @@ export async function run() {
           certificate: Number(cloneCertificate),
         }
       : existingCertificate
-      ? {
-          type: 'existing',
-          certificate: existingCertificate,
-          key: existingCertificateKey,
-        }
-      : undefined;
+        ? {
+            type: 'existing',
+            certificate: existingCertificate,
+            key: existingCertificateKey,
+          }
+        : undefined;
 
     const pr = github.context.payload as PullRequestEvent;
 
