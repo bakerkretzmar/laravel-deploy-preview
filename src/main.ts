@@ -35,48 +35,56 @@ export async function run() {
     const existingCertificate = core.getInput('existing-certificate', { required: false });
     const existingCertificateKey = core.getInput('existing-certificate-key', { required: false });
     const cloneCertificate = core.getInput('clone-certificate', { required: false });
+    const noCertificate = core.getBooleanInput('no-certificate', { required: false });
 
-    if (!!existingCertificate !== !!existingCertificateKey) {
-      throw new Error(
-        `Invalid certificate inputs: ${
-          !existingCertificate
-            ? '`existing-certificate-key` provided but `existing-certificate` missing.'
-            : !existingCertificateKey
-              ? '`existing-certificate` provided but `existing-certificate-key` missing'
-              : ''
-        }`,
-      );
-    }
-
-    if (cloneCertificate) {
-      if (existingCertificate || existingCertificateKey) {
-        throw new Error(
-          "Invalid certificate inputs: cannot use 'existing' and 'clone' inputs together. Remove `existing-certificate` and `existing-certificate-key`, or remove `clone-certificate`.",
-        );
-      }
-
-      if (/\D/.test(cloneCertificate)) {
-        throw new Error(
-          `Invalid \`clone-certificate\` input. Certificate ID must be an integer. Found '${cloneCertificate}'.`,
-        );
-      }
-    }
-
-    const certificate:
+    let certificate:
       | { type: 'clone'; certificate: number }
       | { type: 'existing'; certificate: string; key: string }
-      | undefined = cloneCertificate
-      ? {
-          type: 'clone',
-          certificate: Number(cloneCertificate),
+      | undefined
+      | false = undefined;
+
+    if (noCertificate) {
+      certificate = false;
+    } else {
+      if (!!existingCertificate !== !!existingCertificateKey) {
+        throw new Error(
+          `Invalid certificate inputs: ${
+            !existingCertificate
+              ? '`existing-certificate-key` provided but `existing-certificate` missing.'
+              : !existingCertificateKey
+                ? '`existing-certificate` provided but `existing-certificate-key` missing'
+                : ''
+          }`,
+        );
+      }
+
+      if (cloneCertificate) {
+        if (existingCertificate || existingCertificateKey) {
+          throw new Error(
+            "Invalid certificate inputs: cannot use 'existing' and 'clone' inputs together. Remove `existing-certificate` and `existing-certificate-key`, or remove `clone-certificate`.",
+          );
         }
-      : existingCertificate
+
+        if (/\D/.test(cloneCertificate)) {
+          throw new Error(
+            `Invalid \`clone-certificate\` input. Certificate ID must be an integer. Found '${cloneCertificate}'.`,
+          );
+        }
+      }
+
+      certificate = cloneCertificate
         ? {
-            type: 'existing',
-            certificate: existingCertificate,
-            key: existingCertificateKey,
+            type: 'clone',
+            certificate: Number(cloneCertificate),
           }
-        : undefined;
+        : existingCertificate
+          ? {
+              type: 'existing',
+              certificate: existingCertificate,
+              key: existingCertificateKey,
+            }
+          : undefined;
+    }
 
     const pr = github.context.payload as PullRequestEvent;
 
