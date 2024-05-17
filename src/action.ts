@@ -93,7 +93,7 @@ export async function createPreview({
     await site.ensureCertificateActivated();
   }
 
-  return { url: `https://${site.name}`, id: site.id };
+  return { url: `http${certificate === false ? '' : 's'}://${site.name}`, id: site.id };
 }
 
 export async function destroyPreview({
