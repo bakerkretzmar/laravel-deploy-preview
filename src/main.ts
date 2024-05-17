@@ -114,11 +114,15 @@ export async function run() {
         });
       }
     } else if (pr.action === 'closed') {
-      await destroyPreview({
+      const preview = await destroyPreview({
         branch: pr.pull_request.head.ref,
         servers,
         environment,
       });
+
+      if (preview) {
+        core.setOutput('site-id', preview.id);
+      }
     }
   } catch (error) {
     if (error instanceof ForgeError) {
