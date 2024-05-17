@@ -16,7 +16,7 @@ export async function createPreview({
   servers: { id: number; domain: string }[];
   afterDeploy?: string;
   environment?: Record<string, string>;
-  certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string };
+  certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string } | false;
   name?: string;
 }) {
   core.info(`Creating preview site for branch: ${branch}.`);
@@ -40,15 +40,17 @@ export async function createPreview({
     environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch),
   );
 
-  if (certificate?.type === 'existing') {
-    core.info('Installing existing SSL certificate.');
-    await site.installCertificate(certificate.certificate, certificate.key);
-  } else if (certificate?.type === 'clone') {
-    core.info('Cloning existing SSL certificate.');
-    await site.cloneCertificate(certificate.certificate);
-  } else {
-    core.info('Requesting new SSL certificate.');
-    await site.createCertificate();
+  if (certificate !== false) {
+    if (certificate?.type === 'existing') {
+      core.info('Installing existing SSL certificate.');
+      await site.installCertificate(certificate.certificate, certificate.key);
+    } else if (certificate?.type === 'clone') {
+      core.info('Cloning existing SSL certificate.');
+      await site.cloneCertificate(certificate.certificate);
+    } else {
+      core.info('Requesting new SSL certificate.');
+      await site.createCertificate();
+    }
   }
 
   core.info(`Installing repository: ${repository}.`);
@@ -86,8 +88,10 @@ export async function createPreview({
   core.info('Deploying site.');
   await site.deploy();
 
-  core.info('Waiting for SSL certificate to be activated.');
-  await site.ensureCertificateActivated();
+  if (certificate !== false) {
+    core.info('Waiting for SSL certificate to be activated.');
+    await site.ensureCertificateActivated();
+  }
 
   return { url: `https://${site.name}`, id: site.id };
 }
