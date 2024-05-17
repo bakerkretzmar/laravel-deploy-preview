@@ -9,17 +9,19 @@ export async function createPreview({
   afterDeploy = '',
   environment = {},
   certificate,
+  name,
 }: {
   branch: string;
   repository: string;
   servers: { id: number; domain: string }[];
   afterDeploy?: string;
-  environment: Record<string, string>;
+  environment?: Record<string, string>;
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string };
+  name?: string;
 }) {
   core.info(`Creating preview site for branch: ${branch}.`);
 
-  const siteName = `${normalizeDomainName(branch)}.${servers[0].domain}`;
+  const siteName = `${name ?? normalizeDomainName(branch)}.${servers[0].domain}`;
 
   let site = tap(
     (await Forge.listSites(servers[0].id)).find((site) => site.name === siteName),
@@ -94,14 +96,16 @@ export async function destroyPreview({
   branch,
   servers,
   environment = {},
+  name,
 }: {
   branch: string;
   servers: { id: number; domain: string }[];
-  environment: Record<string, string>;
+  environment?: Record<string, string>;
+  name?: string;
 }) {
   core.info(`Removing preview site: ${branch}.`);
 
-  const siteName = `${normalizeDomainName(branch)}.${servers[0].domain}`;
+  const siteName = `${name ?? normalizeDomainName(branch)}.${servers[0].domain}`;
 
   const site = tap(
     (await Forge.listSites(servers[0].id)).find((site) => site.name === `${siteName}`),
