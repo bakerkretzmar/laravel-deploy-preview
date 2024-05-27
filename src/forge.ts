@@ -57,7 +57,7 @@ export class ForgeError extends Error {
 
 export class Forge {
   static #token: string;
-  static #debug: boolean;
+  static #debug: number = 0;
   static #client?: AxiosInstance;
 
   static async listServers() {
@@ -216,7 +216,7 @@ export class Forge {
     this.#token = token;
   }
 
-  static debug(debug: boolean = true) {
+  static debug(debug: number = 1) {
     this.#debug = debug;
   }
 
@@ -230,9 +230,9 @@ export class Forge {
         },
       });
       this.#client.interceptors.request.use((config) => {
-        if (this.#debug) {
+        if (this.#debug > 0) {
           console.log(`> ${config.method?.toUpperCase()} /${config.url}`);
-          if (config.data) {
+          if (this.#debug > 1 && config.data) {
             console.log(JSON.stringify(config.data, null, 2));
           }
         }
@@ -240,13 +240,13 @@ export class Forge {
       });
       this.#client.interceptors.response.use(
         (response) => {
-          if (this.#debug) {
+          if (this.#debug > 0) {
             console.log(
               `< ${response.config.method?.toUpperCase()} /${response.config.url} ${response.status} ${
                 response.statusText
               }`,
             );
-            if (response.data) {
+            if (this.#debug > 1 && response.data) {
               console.log(JSON.stringify(response.data, null, 2));
             }
           }
@@ -254,7 +254,7 @@ export class Forge {
         },
         async (error) => {
           if (error.response?.status === 429) {
-            if (this.#debug) {
+            if (this.#debug > 0) {
               console.warn('Rate-limited by Forge API, retrying in one second...');
             }
             await sleep(1);

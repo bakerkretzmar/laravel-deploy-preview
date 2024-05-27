@@ -6,7 +6,7 @@ import { normalizeDatabaseName, until, updateDotEnvString } from '../../src/lib'
 // @ts-expect-error import.meta not set up
 Forge.token(import.meta.env.VITE_FORGE_TOKEN);
 // @ts-expect-error import.meta not set up
-Forge.debug(!!import.meta.env.VITE_FORGE_DEBUG);
+Forge.debug(import.meta.env.VITE_FORGE_DEBUG);
 
 // @ts-expect-error import.meta not set up
 const server = Number(import.meta.env.VITE_FORGE_SERVER);
@@ -17,7 +17,7 @@ function id() {
 
 describe('sites', () => {
   afterAll(async () => {
-    Forge.debug(false);
+    Forge.debug(0);
     const sites = await Forge.listSites(server);
     const databases = await Forge.listDatabases(server);
     await Promise.all([

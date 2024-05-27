@@ -89,7 +89,7 @@ export async function run() {
     const pr = github.context.payload as PullRequestEvent;
 
     Forge.token(forgeToken);
-    Forge.debug(core.isDebug());
+    Forge.debug(core.isDebug() ? 2 : 0);
 
     if (pr.action === 'opened' || pr.action === 'reopened') {
       const preview = await createPreview({
