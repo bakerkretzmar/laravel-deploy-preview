@@ -39056,13 +39056,16 @@ class ForgeError extends Error {
 }
 class Forge {
     static #token;
-    static #debug;
+    static #debug = 0;
     static #client;
     static async listServers() {
         return (await this.get('servers')).data.servers;
     }
     static async getServer(server) {
         return (await this.get(`servers/${server}`)).data.server;
+    }
+    static async getServerEvents(server) {
+        return (await this.get('servers/events', { server_id: server })).data;
     }
     static async listSites(server) {
         return (await this.get(`servers/${server}/sites`)).data.sites;
@@ -39166,7 +39169,7 @@ class Forge {
     static token(token) {
         this.#token = token;
     }
-    static debug(debug = true) {
+    static debug(debug = 1) {
         this.#debug = debug;
     }
     static client() {
@@ -39179,25 +39182,25 @@ class Forge {
                 },
             });
             this.#client.interceptors.request.use((config) => {
-                if (this.#debug) {
+                if (this.#debug > 0) {
                     console.log(`> ${config.method?.toUpperCase()} /${config.url}`);
-                    if (config.data) {
+                    if (this.#debug > 1 && config.data) {
                         console.log(JSON.stringify(config.data, null, 2));
                     }
                 }
                 return config;
             });
             this.#client.interceptors.response.use((response) => {
-                if (this.#debug) {
+                if (this.#debug > 0) {
                     console.log(`< ${response.config.method?.toUpperCase()} /${response.config.url} ${response.status} ${response.statusText}`);
-                    if (response.data) {
+                    if (this.#debug > 1 && response.data) {
                         console.log(JSON.stringify(response.data, null, 2));
                     }
                 }
                 return response;
             }, async (error) => {
                 if (error.response?.status === 429) {
-                    if (this.#debug) {
+                    if (this.#debug > 0) {
                         console.warn('Rate-limited by Forge API, retrying in one second...');
                     }
                     await sleep(1);
@@ -39267,6 +39270,12 @@ class Site {
         await Promise.all((await Forge.listScheduledJobs(this.server_id))
             .filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command))
             .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id)));
+    }
+    async ensureSchedulerUninstalled() {
+        let jobs = (await Forge.listScheduledJobs(this.server_id)).filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command));
+        await until(() => jobs.length === 0, async () => {
+            jobs = (await Forge.listScheduledJobs(this.server_id)).filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command));
+        });
     }
     async appendToDeployScript(append) {
         const script = await Forge.getDeployScript(this.server_id, this.id);
@@ -39394,8 +39403,13 @@ async function destroyPreview({ branch, servers, environment = {}, name, }) {
         return;
     }
     core.info(`Found site: ${site.name}.`);
-    core.info('Uninstalling scheduler.');
-    await site.uninstallScheduler();
+    // There is an unresolved issue with Forge where if we attempt to uninstall the scheduler like this and then
+    // immediately delete the site, it gets stuck in a 'removing' state indefinitely and is not fully deleted.
+    // Forge uninstalls the default scheduler automatically when deleting sites though, so for now we can skip this.
+    // core.info('Uninstalling scheduler.');
+    // await site.uninstallScheduler();
+    // core.info('Waiting for scheduler to be uninstalled.');
+    // await site.ensureSchedulerUninstalled();
     core.info('Deleting site.');
     await site.delete();
     if (environment.DB_CONNECTION !== 'sqlite') {
@@ -39471,7 +39485,7 @@ async function run() {
         }
         const pr = github.context.payload;
         Forge.token(forgeToken);
-        Forge.debug(core.isDebug());
+        Forge.debug(core.isDebug() ? 2 : 0);
         if (pr.action === 'opened' || pr.action === 'reopened') {
             const preview = await createPreview({
                 branch: pr.pull_request.head.ref,
