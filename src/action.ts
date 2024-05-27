@@ -123,8 +123,11 @@ export async function destroyPreview({
 
   core.info(`Found site: ${site.name}.`);
 
-  core.info('Uninstalling scheduler.');
-  await site.uninstallScheduler();
+  // There is an unresolved issue with Forge where if we attempt to uninstall the scheduler like this and then
+  // immediately delete the site, it gets stuck in a 'removing' state indefinitely and is not fully deleted.
+  // Forge uninstalls the default scheduler automatically when deleting sites though, so for now we can skip this.
+  // core.info('Uninstalling scheduler.');
+  // await site.uninstallScheduler();
 
   core.info('Deleting site.');
   await site.delete();
