@@ -30,6 +30,7 @@ inputs:
   no-certificate:
     description: Skip the creation of a certificate and serve the preview site over HTTP instead of HTTPS.
     required: false
+    default: false
 outputs:
   site-url:
     description: 'The URL of the deployed preview site.'
