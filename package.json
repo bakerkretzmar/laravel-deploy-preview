@@ -1,7 +1,7 @@
 {
   "name": "laravel-deploy-preview",
   "description": "Deploy PR preview sites for Laravel apps.",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "Jacob Baker-Kretzmar <jacobtbk@gmail.com>",
   "license": "MIT",
   "private": true,

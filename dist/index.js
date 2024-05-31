@@ -39064,9 +39064,6 @@ class Forge {
     static async getServer(server) {
         return (await this.get(`servers/${server}`)).data.server;
     }
-    static async getServerEvents(server) {
-        return (await this.get('servers/events', { server_id: server })).data;
-    }
     static async listSites(server) {
         return (await this.get(`servers/${server}/sites`)).data.sites;
     }
@@ -39271,12 +39268,6 @@ class Site {
             .filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command))
             .map(async (job) => await Forge.deleteScheduledJob(this.server_id, job.id)));
     }
-    async ensureSchedulerUninstalled() {
-        let jobs = (await Forge.listScheduledJobs(this.server_id)).filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command));
-        await until(() => jobs.length === 0, async () => {
-            jobs = (await Forge.listScheduledJobs(this.server_id)).filter((job) => new RegExp(`/home/forge/${this.name}/artisan`).test(job.command));
-        });
-    }
     async appendToDeployScript(append) {
         const script = await Forge.getDeployScript(this.server_id, this.id);
         // TODO does this take time to 'install'? If so what do we wait for?
@@ -39408,8 +39399,6 @@ async function destroyPreview({ branch, servers, environment = {}, name, }) {
     // Forge uninstalls the default scheduler automatically when deleting sites though, so for now we can skip this.
     // core.info('Uninstalling scheduler.');
     // await site.uninstallScheduler();
-    // core.info('Waiting for scheduler to be uninstalled.');
-    // await site.ensureSchedulerUninstalled();
     core.info('Deleting site.');
     await site.delete();
     if (environment.DB_CONNECTION !== 'sqlite') {
