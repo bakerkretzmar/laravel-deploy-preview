@@ -22,7 +22,7 @@ export function tap<T>(value: any, interceptor: (v: any) => T) {
 export function normalizeDatabaseName(input: string) {
   return input
     .replace(/[\W_]+/g, '_')
-    .substring(0, 64)
+    .substring(0, 63)
     .replace(/^_|_$/g, '')
     .toLowerCase();
 }
