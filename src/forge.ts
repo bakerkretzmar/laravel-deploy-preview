@@ -77,13 +77,34 @@ export class Forge {
     return (await this.get<{ sites: SitePayload[] }>(`servers/${server}/sites`)).data.sites;
   }
 
-  static async createSite(server: number, name: string, database: string) {
+  static async createSite(
+    server: number,
+    {
+      name,
+      database,
+      aliases,
+      isolated = false,
+      username,
+      php,
+    }: {
+      name: string;
+      database: string;
+      aliases?: string[];
+      isolated?: boolean;
+      username?: string;
+      php?: string;
+    },
+  ) {
     return (
       await this.post<{ site: SitePayload }>(`servers/${server}/sites`, {
         domain: name,
         project_type: 'php',
+        aliases,
         directory: '/public',
+        isolated,
+        username,
         database,
+        php_version: php,
       })
     ).data.site;
   }
@@ -323,8 +344,25 @@ export class Site {
     this.deployment_status = data.deployment_status;
   }
 
-  static async create(server: number, name: string, database: string) {
-    let site = await Forge.createSite(server, name, database);
+  static async create(
+    server: number,
+    {
+      name,
+      database,
+      aliases,
+      isolated = false,
+      username,
+      php,
+    }: {
+      name: string;
+      database: string;
+      aliases?: string[];
+      isolated?: boolean;
+      username?: string;
+      php?: string;
+    },
+  ) {
+    let site = await Forge.createSite(server, { name, database, aliases, isolated, username, php });
     await until(
       () => site.status === 'installed',
       async () => (site = await Forge.getSite(server, site.id)),

@@ -18,6 +18,19 @@ inputs:
   environment:
     description: Environment variables to add or update on the preview site.
     required: false
+  aliases:
+    description: Alias domains and subdomains to add to the preview site. Enter multiple aliases on separate lines.
+    required: false
+  isolated:
+    description: Enable Forge site isolation.
+    required: false
+    default: false
+  username:
+    description: Set a custom site isolation username.
+    required: false
+  php-version:
+    description: PHP version to use for the preview site, e.g. `8.3`.
+    required: false
   existing-certificate:
     description: Existing SSL certificate to use for the preview site.
     required: false
