@@ -31,14 +31,17 @@ inputs:
     description: Skip the creation of a certificate and serve the preview site over HTTP instead of HTTPS.
     required: false
     default: false
+  deployment-webhooks:
+    description: URLs to send webhooks to after Forge deployments. Enter multiple URLs on separate lines.
+    required: false
 outputs:
   site-url:
-    description: 'The URL of the deployed preview site.'
+    description: The URL of the deployed preview site.
   site-id:
-    description: 'The Forge ID of the deployed preview site.'
+    description: The Forge ID of the deployed preview site.
 runs:
   using: node20
   main: dist/index.js
 branding:
-  icon: 'eye'
-  color: 'red'
+  icon: eye
+  color: red

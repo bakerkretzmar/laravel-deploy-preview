@@ -163,6 +163,23 @@ Example:
     clone-certificate: 90051
 ```
 
+#### `deployment-webhooks`
+
+The `deployment-webhooks` input parameter allows you to add webhook URLs that Forge will notify of all deployments.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    deployment-webhooks: |
+      https://webhooks.example.com/1
+      https://webhooks.example.com/2
+```
+
 ### Databases
 
 This action creates a new database for each preview site and deletes the database when the preview site is deleted. If your Forge server has one of the default supported database engines installed (MySQL, MariaDB, or PostgreSQL), that database engine will be used and no additional configuration is necessary.
