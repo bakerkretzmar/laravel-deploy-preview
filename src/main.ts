@@ -38,6 +38,7 @@ export async function run() {
     const noCertificate = core.getBooleanInput('no-certificate', { required: false });
 
     const webhooks = core.getMultilineInput('deployment-webhooks', { required: false });
+
     let certificate:
       | { type: 'clone'; certificate: number }
       | { type: 'existing'; certificate: string; key: string }
