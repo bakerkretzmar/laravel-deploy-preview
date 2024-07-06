@@ -41,6 +41,11 @@ type CommandPayload = {
   duration: string;
 };
 
+type WebhookPayload = {
+  id: number;
+  url: string;
+};
+
 export class ForgeError extends Error {
   axiosError: AxiosError;
   data?: unknown;
@@ -210,6 +215,11 @@ export class Forge {
     return (
       await this.get<{ command: CommandPayload; output: string }>(`servers/${server}/sites/${site}/commands/${command}`)
     ).data;
+  }
+
+  static async createWebhook(server: number, site: number, url: string) {
+    return (await this.post<{ webhook: WebhookPayload }>(`servers/${server}/sites/${site}/webhooks`, { url })).data
+      .webhook;
   }
 
   static token(token: string) {
@@ -394,6 +404,10 @@ export class Site {
       () => this.deployment_status === null,
       async () => await this.refetch(),
     );
+  }
+
+  async createWebhook(url: string) {
+    await Forge.createWebhook(this.server_id, this.id, url);
   }
 
   // TODO figure out a way to safely+reliably figure the name out internally so it doesn't need to be passed in

@@ -10,6 +10,7 @@ export async function createPreview({
   environment = {},
   certificate,
   name,
+  webhooks,
 }: {
   branch: string;
   repository: string;
@@ -18,6 +19,7 @@ export async function createPreview({
   environment?: Record<string, string>;
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string } | false;
   name?: string;
+  webhooks: string[];
 }) {
   core.info(`Creating preview site for branch: ${branch}.`);
 
@@ -84,6 +86,9 @@ export async function createPreview({
 
   core.info('Enabling Quick Deploy.');
   await site.enableQuickDeploy();
+
+  core.info('Setting up webhooks.');
+  await Promise.all(webhooks.map((url) => site.createWebhook(url)));
 
   core.info('Deploying site.');
   await site.deploy();
