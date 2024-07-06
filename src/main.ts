@@ -32,6 +32,11 @@ export async function run() {
       return { ...all, [key]: value };
     }, {});
 
+    const aliases = core.getMultilineInput('aliases', { required: false });
+    const isolated = core.getBooleanInput('isolated', { required: false });
+    const username = core.getInput('username', { required: false });
+    const php = core.getInput('php-version', { required: false });
+
     const existingCertificate = core.getInput('existing-certificate', { required: false });
     const existingCertificateKey = core.getInput('existing-certificate-key', { required: false });
     const cloneCertificate = core.getInput('clone-certificate', { required: false });
@@ -102,6 +107,10 @@ export async function run() {
         environment,
         certificate,
         webhooks,
+        aliases,
+        isolated,
+        username,
+        php,
       });
 
       if (preview) {

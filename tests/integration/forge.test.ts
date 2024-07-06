@@ -37,7 +37,7 @@ describe('sites', () => {
   test('create site', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     expect(site).toMatchObject({
       server_id: server,
@@ -60,7 +60,7 @@ describe('sites', () => {
   test('delete site', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -87,7 +87,7 @@ describe('sites', () => {
   test('handle duplicate site name', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -95,7 +95,7 @@ describe('sites', () => {
     );
 
     try {
-      await Forge.createSite(server, name, '');
+      await Forge.createSite(server, { name, database: '' });
     } catch (e) {
       expect(e).toBeInstanceOf(ForgeError);
       expect(e.message).toBe('Forge API request failed with status code 422.');
@@ -109,7 +109,7 @@ describe('sites', () => {
     const database = `test-${id()}`;
     const name = `${database}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, normalizeDatabaseName(database));
+    let site = await Forge.createSite(server, { name, database: normalizeDatabaseName(database) });
 
     await until(
       () => site.status === 'installed',
@@ -119,7 +119,7 @@ describe('sites', () => {
     const name2 = `test-${id()}.laravel-deploy-preview.com`;
 
     try {
-      await Forge.createSite(server, name2, normalizeDatabaseName(database));
+      await Forge.createSite(server, { name: name2, database: normalizeDatabaseName(database) });
     } catch (e) {
       expect(e).toBeInstanceOf(ForgeError);
       expect(e.message).toBe('Forge API request failed with status code 422.');
@@ -132,7 +132,7 @@ describe('sites', () => {
   test('create SSL certificate', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -185,7 +185,7 @@ describe('sites', () => {
     // Domain doesn't exist / isn't pointed to the server
     const name = `test-${id()}-laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -223,7 +223,7 @@ describe('sites', () => {
   test('install SSL certificate', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -286,7 +286,7 @@ describe('sites', () => {
 
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -356,7 +356,7 @@ describe('sites', () => {
   test('handle failing to enable quick deploy', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     expect(site).toMatchObject({
       server_id: server,
@@ -400,7 +400,7 @@ describe('sites', () => {
   test('use sqlite', async () => {
     const name = `test-${id()}.laravel-deploy-preview.com`;
 
-    let site = await Forge.createSite(server, name, '');
+    let site = await Forge.createSite(server, { name, database: '' });
 
     await until(
       () => site.status === 'installed',
@@ -463,4 +463,12 @@ describe('sites', () => {
 
     expect(output3).toMatch(/sqlite \.+ \[\] OK/);
   });
+
+  test.todo('add aliases');
+
+  test.todo('enable isolation');
+
+  test.todo('set isolation username');
+
+  test.todo('set php version');
 });

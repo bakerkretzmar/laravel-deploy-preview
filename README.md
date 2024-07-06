@@ -132,6 +132,59 @@ Example:
       TELESCOPE_ENABLED=false
 ```
 
+#### `aliases`
+
+The `aliases` input allows you to add domain aliases for the preview site. It supports some custom formatting to make it easier to generate domain names dynamically:
+
+- Aliases starting with a period will be treated as alternate root domains and will have the default subdomain prepended to them (e.g. on a branch called `my-feature`, providing `.acme-preview.dev` in this parameter will add a Forge alias of `my-feature.acme-preview.dev`).
+- Aliases ending with a period will be treated as alternate subdomains and will have the default root domain appended to them (e.g. with a root domain of `acme-preview.dev`, providing `my-feature.` in this parameter will also add a Forge alias of `my-feature.acme-preview.dev`). This is particularly useful if you want to generate additional URLs based on GitHub Actions metadata from your workflow file, like a PR number.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    aliases: |
+      .acme-qa.dev
+      pr-${{ github.event.number }}.
+      hardcoded-specific-url.acme-qa.dev
+```
+
+The example above, for PR #20 on a branch called `feature`, would create a Forge site with the domain `feature.qa-1.acme.dev` and aliases `feature.acme-qa.dev`, `pr-20.qa-1.acme.dev`, and `hardcoded-specific-url.acme-qa.dev`.
+
+#### `isolated` & `username`
+
+The `isolated` and `username` inputs allow you to enable Forge site isolation and optionally set the isolated user's name. If `username` is omitted the site/branch name will be used.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    isolated: true
+```
+
+#### `php-version`
+
+The `php-version` input allows you to set the PHP version of the preview site. The version provided must already be installed on the server.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    php-version: 8.4
+```
+
 #### `existing-certificate` & `existing-certificate-key`
 
 The `existing-certificate` and `existing-certificate-key` input parameters allow you to supply a custom SSL certificate for the preview site instead of obtaining one from Let’s Encrypt.

@@ -11,6 +11,10 @@ export async function createPreview({
   certificate,
   name,
   webhooks,
+  aliases,
+  isolated,
+  username,
+  php,
 }: {
   branch: string;
   repository: string;
@@ -20,6 +24,10 @@ export async function createPreview({
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string } | false;
   name?: string;
   webhooks: string[];
+  aliases: string[];
+  isolated: boolean;
+  username?: string;
+  php?: string;
 }) {
   core.info(`Creating preview site for branch: ${branch}.`);
 
@@ -35,12 +43,31 @@ export async function createPreview({
     return;
   }
 
-  core.info(`Creating site: ${siteName}.`);
-  site = await Site.create(
-    servers[0].id,
-    siteName,
-    environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch),
+  aliases = aliases.map((alias) =>
+    alias.startsWith('.')
+      ? `${normalizeDomainName(branch)}${alias}`
+      : alias.endsWith('.')
+        ? `${alias}${servers[0].domain}`
+        : alias,
   );
+
+  if (isolated && !username) {
+    username = siteName;
+  }
+
+  if (php) {
+    php = `php${php.replace('.', '')}`;
+  }
+
+  core.info(`Creating site: ${siteName}.`);
+  site = await Site.create(servers[0].id, {
+    name: siteName,
+    database: environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch),
+    aliases,
+    isolated,
+    username,
+    php,
+  });
 
   if (certificate !== false) {
     if (certificate?.type === 'existing') {
