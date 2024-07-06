@@ -31,8 +31,20 @@ inputs:
     description: Skip the creation of a certificate and serve the preview site over HTTP instead of HTTPS.
     required: false
     default: false
+  deployment-failure-emails:
+    description: Emails to notify of Forge deployment failures. Enter multiple emails separated by commas.
+    required: false
   deployment-webhooks:
     description: URLs to send webhooks to after Forge deployments. Enter multiple URLs on separate lines.
+    required: false
+  slack-deployment-notifications:
+    description: Slack channels to notify after Forge deployments.
+    required: false
+  teams-deployment-notifications:
+    description: Webhook URL to notify Teams after Forge deployments.
+    required: false
+  discord-deployment-notifications:
+    description: Webhook URL to notify Discord after Forge deployments.
     required: false
 outputs:
   site-url:

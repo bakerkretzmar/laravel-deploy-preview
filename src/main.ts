@@ -37,7 +37,11 @@ export async function run() {
     const cloneCertificate = core.getInput('clone-certificate', { required: false });
     const noCertificate = core.getBooleanInput('no-certificate', { required: false });
 
+    const deploymentFailureEmails = core.getInput('deployment-failure-emails', { required: false });
     const webhooks = core.getMultilineInput('deployment-webhooks', { required: false });
+    const slackDeploymentNotifications = core.getInput('slack-deployment-notifications', { required: false });
+    const teamsDeploymentNotifications = core.getInput('teams-deployment-notifications', { required: false });
+    const discordDeploymentNotifications = core.getInput('discord-deployment-notifications', { required: false });
 
     let certificate:
       | { type: 'clone'; certificate: number }
@@ -101,7 +105,11 @@ export async function run() {
         afterDeploy,
         environment,
         certificate,
+        deploymentFailureEmails,
         webhooks,
+        slackDeploymentNotifications,
+        teamsDeploymentNotifications,
+        discordDeploymentNotifications,
       });
 
       if (preview) {

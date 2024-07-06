@@ -163,9 +163,9 @@ Example:
     clone-certificate: 90051
 ```
 
-#### `deployment-webhooks`
+#### `deployment-failure-emails`, `deployment-webhooks`, `slack-deployment-notifications`, `teams-deployment-notifications`, & `discord-deployment-notifications`
 
-The `deployment-webhooks` input parameter allows you to add webhook URLs that Forge will notify of all deployments.
+These input parameters allow you notify various services of Forge deployments and deployment issues.
 
 Example:
 
@@ -175,9 +175,11 @@ Example:
     forge-token: ${{ secrets.FORGE_TOKEN }}
     servers: |
       qa-1.acme.dev 60041
+    deployment-failure-emails: me@example.com, my-boss@example.com
     deployment-webhooks: |
       https://webhooks.example.com/1
       https://webhooks.example.com/2
+    slack-deployment-notifications: '#ops'
 ```
 
 ### Databases

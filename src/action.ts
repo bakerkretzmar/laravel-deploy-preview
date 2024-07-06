@@ -10,7 +10,11 @@ export async function createPreview({
   environment = {},
   certificate,
   name,
+  deploymentFailureEmails,
   webhooks,
+  slackDeploymentNotifications,
+  teamsDeploymentNotifications,
+  discordDeploymentNotifications,
 }: {
   branch: string;
   repository: string;
@@ -19,7 +23,11 @@ export async function createPreview({
   environment?: Record<string, string>;
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string } | false;
   name?: string;
+  deploymentFailureEmails: string;
   webhooks: string[];
+  slackDeploymentNotifications: string;
+  teamsDeploymentNotifications: string;
+  discordDeploymentNotifications: string;
 }) {
   core.info(`Creating preview site for branch: ${branch}.`);
 
@@ -40,6 +48,11 @@ export async function createPreview({
     servers[0].id,
     siteName,
     environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch),
+    {
+      slack: slackDeploymentNotifications,
+      teams: teamsDeploymentNotifications,
+      discord: discordDeploymentNotifications,
+    },
   );
 
   if (certificate !== false) {

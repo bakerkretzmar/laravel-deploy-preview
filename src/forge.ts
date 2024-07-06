@@ -14,6 +14,7 @@ type SitePayload = {
   repository_status: string | null;
   quick_deploy: boolean | null;
   deployment_status: string | null;
+  slack_channel: string;
 };
 
 type JobPayload = {
@@ -77,13 +78,29 @@ export class Forge {
     return (await this.get<{ sites: SitePayload[] }>(`servers/${server}/sites`)).data.sites;
   }
 
-  static async createSite(server: number, name: string, database: string) {
+  static async createSite(
+    server: number,
+    name: string,
+    database: string,
+    {
+      slack: slack_channel,
+      teams: teams_webhook_url,
+      discord: discord_webhook_url,
+    }: {
+      slack?: string;
+      teams?: string;
+      discord?: string;
+    } = {},
+  ) {
     return (
       await this.post<{ site: SitePayload }>(`servers/${server}/sites`, {
         domain: name,
         project_type: 'php',
         directory: '/public',
         database,
+        slack_channel,
+        teams_webhook_url,
+        discord_webhook_url,
       })
     ).data.site;
   }
@@ -323,8 +340,13 @@ export class Site {
     this.deployment_status = data.deployment_status;
   }
 
-  static async create(server: number, name: string, database: string) {
-    let site = await Forge.createSite(server, name, database);
+  static async create(
+    server: number,
+    name: string,
+    database: string,
+    config: { slack?: string; teams?: string; discord?: string } = {},
+  ) {
+    let site = await Forge.createSite(server, name, database, config);
     await until(
       () => site.status === 'installed',
       async () => (site = await Forge.getSite(server, site.id)),
