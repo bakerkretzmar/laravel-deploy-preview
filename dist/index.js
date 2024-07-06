@@ -39067,12 +39067,16 @@ class Forge {
     static async listSites(server) {
         return (await this.get(`servers/${server}/sites`)).data.sites;
     }
-    static async createSite(server, name, database) {
+    static async createSite(server, { name, database, aliases, isolated = false, username, php, }) {
         return (await this.post(`servers/${server}/sites`, {
             domain: name,
             project_type: 'php',
+            aliases,
             directory: '/public',
+            isolated,
+            username,
             database,
+            php_version: php,
         })).data.site;
     }
     static async getSite(server, site) {
@@ -39163,6 +39167,10 @@ class Forge {
     static async getCommand(server, site, command) {
         return (await this.get(`servers/${server}/sites/${site}/commands/${command}`)).data;
     }
+    static async createWebhook(server, site, url) {
+        return (await this.post(`servers/${server}/sites/${site}/webhooks`, { url })).data
+            .webhook;
+    }
     static token(token) {
         this.#token = token;
     }
@@ -39245,8 +39253,8 @@ class Site {
         this.quick_deploy = data.quick_deploy;
         this.deployment_status = data.deployment_status;
     }
-    static async create(server, name, database) {
-        let site = await Forge.createSite(server, name, database);
+    static async create(server, { name, database, aliases, isolated = false, username, php, }) {
+        let site = await Forge.createSite(server, { name, database, aliases, isolated, username, php });
         await until(() => site.status === 'installed', async () => (site = await Forge.getSite(server, site.id)));
         return new Site(site);
     }
@@ -39301,6 +39309,9 @@ class Site {
         await Forge.deploy(this.server_id, this.id);
         await until(() => this.deployment_status === null, async () => await this.refetch());
     }
+    async createWebhook(url) {
+        await Forge.createWebhook(this.server_id, this.id, url);
+    }
     // TODO figure out a way to safely+reliably figure the name out internally so it doesn't need to be passed in
     // Environment file??
     async deleteDatabase(name) {
@@ -39328,7 +39339,7 @@ class Site {
 
 
 
-async function createPreview({ branch, repository, servers, afterDeploy = '', environment = {}, certificate, name, }) {
+async function createPreview({ branch, repository, servers, afterDeploy = '', environment = {}, certificate, name, webhooks, aliases, isolated, username, php, }) {
     core.info(`Creating preview site for branch: ${branch}.`);
     const siteName = `${name ?? normalizeDomainName(branch)}.${servers[0].domain}`;
     let site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === siteName), (site) => (site ? new Site(site) : undefined));
@@ -39336,8 +39347,26 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
         core.info(`Site exists: ${site.name}`);
         return;
     }
+    aliases = aliases.map((alias) => alias.startsWith('.')
+        ? `${normalizeDomainName(branch)}${alias}`
+        : alias.endsWith('.')
+            ? `${alias}${servers[0].domain}`
+            : alias);
+    if (isolated && !username) {
+        username = siteName;
+    }
+    if (php) {
+        php = `php${php.replace('.', '')}`;
+    }
     core.info(`Creating site: ${siteName}.`);
-    site = await Site.create(servers[0].id, siteName, environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch));
+    site = await Site.create(servers[0].id, {
+        name: siteName,
+        database: environment.DB_CONNECTION === 'sqlite' ? '' : normalizeDatabaseName(branch),
+        aliases,
+        isolated,
+        username,
+        php,
+    });
     if (certificate !== false) {
         if (certificate?.type === 'existing') {
             core.info('Installing existing SSL certificate.');
@@ -39377,6 +39406,8 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
     }
     core.info('Enabling Quick Deploy.');
     await site.enableQuickDeploy();
+    core.info('Setting up webhooks.');
+    await Promise.all(webhooks.map((url) => site.createWebhook(url)));
     core.info('Deploying site.');
     await site.deploy();
     if (certificate !== false) {
@@ -39435,10 +39466,15 @@ async function run() {
             const [key, value] = line.split('=');
             return { ...all, [key]: value };
         }, {});
+        const aliases = core.getMultilineInput('aliases', { required: false });
+        const isolated = core.getBooleanInput('isolated', { required: false });
+        const username = core.getInput('username', { required: false });
+        const php = core.getInput('php-version', { required: false });
         const existingCertificate = core.getInput('existing-certificate', { required: false });
         const existingCertificateKey = core.getInput('existing-certificate-key', { required: false });
         const cloneCertificate = core.getInput('clone-certificate', { required: false });
         const noCertificate = core.getBooleanInput('no-certificate', { required: false });
+        const webhooks = core.getMultilineInput('deployment-webhooks', { required: false });
         let certificate = undefined;
         if (noCertificate) {
             certificate = false;
@@ -39483,6 +39519,11 @@ async function run() {
                 afterDeploy,
                 environment,
                 certificate,
+                webhooks,
+                aliases,
+                isolated,
+                username,
+                php,
             });
             if (preview) {
                 core.setOutput('site-url', preview.url);
