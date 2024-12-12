@@ -46,6 +46,11 @@ type WebhookPayload = {
   url: string;
 };
 
+type FailureEmailPayload = {
+  id: number;
+  email: string;
+}
+
 export class ForgeError extends Error {
   axiosError: AxiosError;
   data?: unknown;
@@ -244,7 +249,8 @@ export class Forge {
   }
 
   static async createFailureEmail(server: number, site: number, email: string) {
-    return (await this.post<{ email: string }>(`servers/${server}/sites/${site}/deployment-failure-emails`, { email })).data.email;
+    return (await this.post<{ email: FailureEmailPayload }>(`servers/${server}/sites/${site}/deployment-failure-emails`, { email })).data
+      .email;
   }
 
   static token(token: string) {
