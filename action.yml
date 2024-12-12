@@ -47,6 +47,9 @@ inputs:
   deployment-webhooks:
     description: URLs to send webhooks to after Forge deployments. Enter multiple URLs on separate lines.
     required: false
+  deployment-failure-email:
+    description: Email address to send a notification to if the Forge deployment fails.
+    required: false
 outputs:
   site-url:
     description: The URL of the deployed preview site.
