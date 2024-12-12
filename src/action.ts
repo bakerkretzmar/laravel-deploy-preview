@@ -11,6 +11,7 @@ export async function createPreview({
   certificate,
   name,
   webhooks,
+  failureEmails,
   aliases,
   isolated,
   username,
@@ -24,6 +25,7 @@ export async function createPreview({
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string } | false;
   name?: string;
   webhooks: string[];
+  failureEmails?: string[];
   aliases: string[];
   isolated: boolean;
   username?: string;
@@ -116,6 +118,16 @@ export async function createPreview({
 
   core.info('Setting up webhooks.');
   await Promise.all(webhooks.map((url) => site.createWebhook(url)));
+
+  if (failureEmails?.length) {
+    core.info('Setting up deployment failure notifications.');
+    if (failureEmails.length > 3) {
+      core.warning(
+        `Only 3 emails can be notified of deployment failures, found ${failureEmails.length}. Only the first 3 will be used.`,
+      );
+    }
+    await site.setDeploymentFailureEmails(failureEmails.slice(0, 3));
+  }
 
   core.info('Deploying site.');
   await site.deploy();

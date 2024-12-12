@@ -233,6 +233,21 @@ Example:
       https://webhooks.example.com/2
 ```
 
+#### `deployment-failure-emails`
+
+The `deployment-failure-emails` input parameter allows you to define up to 3 custom email addresses that Forge will notify of all deployment failures. To notify multiple email addresses, enter them on separate lines.
+
+Example:
+
+```yaml
+- uses: bakerkretzmar/laravel-deploy-preview@v2
+  with:
+    forge-token: ${{ secrets.FORGE_TOKEN }}
+    servers: |
+      qa-1.acme.dev 60041
+    deployment-failure-email: failure@example.com
+```
+
 ### Databases
 
 This action creates a new database for each preview site and deletes the database when the preview site is deleted. If your Forge server has one of the default supported database engines installed (MySQL, MariaDB, or PostgreSQL), that database engine will be used and no additional configuration is necessary.

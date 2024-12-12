@@ -243,6 +243,10 @@ export class Forge {
       .webhook;
   }
 
+  static async setDeploymentFailureEmails(server: number, site: number, emails: string[]) {
+    await this.post(`servers/${server}/sites/${site}/deployment-failure-emails`, { emails });
+  }
+
   static token(token: string) {
     this.#token = token;
   }
@@ -264,7 +268,7 @@ export class Forge {
         if (this.#debug > 0) {
           console.log(`> ${config.method?.toUpperCase()} /${config.url}`);
           if (this.#debug > 1 && config.data) {
-            console.log(JSON.stringify(config.data, null, 2));
+            console.log(config.data);
           }
         }
         return config;
@@ -278,7 +282,7 @@ export class Forge {
               }`,
             );
             if (this.#debug > 1 && response.data) {
-              console.log(JSON.stringify(response.data, null, 2));
+              console.log(response.data);
             }
           }
           return response;
@@ -298,6 +302,16 @@ export class Forge {
           ) {
             const [, server, site] = error.response.config.url.match(/servers\/(\d+)\/sites\/(\d+)/);
             detail = `A previously requested SSL certificate was not found. This may mean that automatically obtaining and installing a Let’s Encrypt certificate failed. Please review any error output in your Forge dashboard and then try again: https://forge.laravel.com/servers/${server}/sites/${site}.`;
+          }
+          if (this.#debug > 0) {
+            console.log(
+              `< ${error.response?.config.method.toUpperCase()} /${error.response?.config.url} ${error.response?.status} ${
+                error.response?.statusText
+              }`,
+            );
+            if ((this.#debug > 1 || error.response?.status === 422) && error.response?.data) {
+              console.log(error.response.data);
+            }
           }
           return Promise.reject(new ForgeError(error, detail));
         },
@@ -446,6 +460,10 @@ export class Site {
 
   async createWebhook(url: string) {
     await Forge.createWebhook(this.server_id, this.id, url);
+  }
+
+  async setDeploymentFailureEmails(emails: string[]) {
+    await Forge.setDeploymentFailureEmails(this.server_id, this.id, emails);
   }
 
   // TODO figure out a way to safely+reliably figure the name out internally so it doesn't need to be passed in
