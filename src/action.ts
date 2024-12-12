@@ -11,6 +11,7 @@ export async function createPreview({
   certificate,
   name,
   webhooks,
+  failureEmail,
   aliases,
   isolated,
   username,
