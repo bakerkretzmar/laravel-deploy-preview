@@ -39171,6 +39171,9 @@ class Forge {
         return (await this.post(`servers/${server}/sites/${site}/webhooks`, { url })).data
             .webhook;
     }
+    static async setDeploymentFailureEmails(server, site, emails) {
+        await this.post(`servers/${server}/sites/${site}/deployment-failure-emails`, { emails });
+    }
     static token(token) {
         this.#token = token;
     }
@@ -39190,7 +39193,7 @@ class Forge {
                 if (this.#debug > 0) {
                     console.log(`> ${config.method?.toUpperCase()} /${config.url}`);
                     if (this.#debug > 1 && config.data) {
-                        console.log(JSON.stringify(config.data, null, 2));
+                        console.log(config.data);
                     }
                 }
                 return config;
@@ -39199,7 +39202,7 @@ class Forge {
                 if (this.#debug > 0) {
                     console.log(`< ${response.config.method?.toUpperCase()} /${response.config.url} ${response.status} ${response.statusText}`);
                     if (this.#debug > 1 && response.data) {
-                        console.log(JSON.stringify(response.data, null, 2));
+                        console.log(response.data);
                     }
                 }
                 return response;
@@ -39216,6 +39219,12 @@ class Forge {
                     /servers\/\d+\/sites\/\d+\/certificates\/\d+/.test(error.response?.config?.url)) {
                     const [, server, site] = error.response.config.url.match(/servers\/(\d+)\/sites\/(\d+)/);
                     detail = `A previously requested SSL certificate was not found. This may mean that automatically obtaining and installing a Let’s Encrypt certificate failed. Please review any error output in your Forge dashboard and then try again: https://forge.laravel.com/servers/${server}/sites/${site}.`;
+                }
+                if (this.#debug > 0) {
+                    console.log(`< ${error.response?.config.method.toUpperCase()} /${error.response?.config.url} ${error.response?.status} ${error.response?.statusText}`);
+                    if ((this.#debug > 1 || error.response?.status === 422) && error.response?.data) {
+                        console.log(error.response.data);
+                    }
                 }
                 return Promise.reject(new ForgeError(error, detail));
             });
@@ -39312,6 +39321,9 @@ class Site {
     async createWebhook(url) {
         await Forge.createWebhook(this.server_id, this.id, url);
     }
+    async setDeploymentFailureEmails(emails) {
+        await Forge.setDeploymentFailureEmails(this.server_id, this.id, emails);
+    }
     // TODO figure out a way to safely+reliably figure the name out internally so it doesn't need to be passed in
     // Environment file??
     async deleteDatabase(name) {
@@ -39339,7 +39351,7 @@ class Site {
 
 
 
-async function createPreview({ branch, repository, servers, afterDeploy = '', environment = {}, certificate, name, webhooks, aliases, isolated, username, php, }) {
+async function createPreview({ branch, repository, servers, afterDeploy = '', environment = {}, certificate, name, webhooks, failureEmails, aliases, isolated, username, php, }) {
     core.info(`Creating preview site for branch: ${branch}.`);
     const siteName = `${name ?? normalizeDomainName(branch)}.${servers[0].domain}`;
     let site = tap((await Forge.listSites(servers[0].id)).find((site) => site.name === siteName), (site) => (site ? new Site(site) : undefined));
@@ -39408,6 +39420,13 @@ async function createPreview({ branch, repository, servers, afterDeploy = '', en
     await site.enableQuickDeploy();
     core.info('Setting up webhooks.');
     await Promise.all(webhooks.map((url) => site.createWebhook(url)));
+    if (failureEmails?.length) {
+        core.info('Setting up deployment failure notifications.');
+        if (failureEmails.length > 3) {
+            core.warning(`Only 3 emails can be notified of deployment failures, found ${failureEmails.length}. Only the first 3 will be used.`);
+        }
+        await site.setDeploymentFailureEmails(failureEmails.slice(0, 3));
+    }
     core.info('Deploying site.');
     await site.deploy();
     if (certificate !== false) {
@@ -39475,6 +39494,7 @@ async function run() {
         const cloneCertificate = core.getInput('clone-certificate', { required: false });
         const noCertificate = core.getBooleanInput('no-certificate', { required: false });
         const webhooks = core.getMultilineInput('deployment-webhooks', { required: false });
+        const failureEmails = core.getMultilineInput('deployment-failure-emails', { required: false });
         let certificate = undefined;
         if (noCertificate) {
             certificate = false;
@@ -39520,6 +39540,7 @@ async function run() {
                 environment,
                 certificate,
                 webhooks,
+                failureEmails,
                 aliases,
                 isolated,
                 username,
