@@ -233,9 +233,9 @@ Example:
       https://webhooks.example.com/2
 ```
 
-#### `deployment-failure-email`
+#### `deployment-failure-emails`
 
-The `deployment-failure-email` input parameter allows you to define a custom email address that Forge will notify of all deployment failures.
+The `deployment-failure-emails` input parameter allows you to define up to 3 custom email addresses that Forge will notify of all deployment failures. To notify multiple email addresses, enter them on separate lines.
 
 Example:
 
