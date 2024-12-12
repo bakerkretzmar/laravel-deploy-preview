@@ -243,6 +243,10 @@ export class Forge {
       .webhook;
   }
 
+  static async createFailureEmail(server: number, site: number, email: string) {
+    return (await this.post<{ email: string }>(`servers/${server}/sites/${site}/deployment-failure-emails`, { email })).data.email;
+  }
+
   static token(token: string) {
     this.#token = token;
   }
@@ -446,6 +450,10 @@ export class Site {
 
   async createWebhook(url: string) {
     await Forge.createWebhook(this.server_id, this.id, url);
+  }
+
+  async createFailureEmail(email: string) {
+    await Forge.createFailureEmail(this.server_id, this.id, email);
   }
 
   // TODO figure out a way to safely+reliably figure the name out internally so it doesn't need to be passed in

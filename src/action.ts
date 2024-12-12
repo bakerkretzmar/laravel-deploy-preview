@@ -24,6 +24,7 @@ export async function createPreview({
   certificate?: { type: 'clone'; certificate: number } | { type: 'existing'; certificate: string; key: string } | false;
   name?: string;
   webhooks: string[];
+  failureEmail?: string;
   aliases: string[];
   isolated: boolean;
   username?: string;
@@ -116,6 +117,9 @@ export async function createPreview({
 
   core.info('Setting up webhooks.');
   await Promise.all(webhooks.map((url) => site.createWebhook(url)));
+
+  core.info('Setting up failure email.');
+  await Promise.all(failureEmail.map((email) => site.createFailureEmail(email)));
 
   core.info('Deploying site.');
   await site.deploy();

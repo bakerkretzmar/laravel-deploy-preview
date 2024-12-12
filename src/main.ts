@@ -43,6 +43,7 @@ export async function run() {
     const noCertificate = core.getBooleanInput('no-certificate', { required: false });
 
     const webhooks = core.getMultilineInput('deployment-webhooks', { required: false });
+    const failureEmail = core.getInput('deployment-failure-email', { required: false });
 
     let certificate:
       | { type: 'clone'; certificate: number }
@@ -107,6 +108,7 @@ export async function run() {
         environment,
         certificate,
         webhooks,
+        failureEmail,
         aliases,
         isolated,
         username,
