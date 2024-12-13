@@ -104,7 +104,7 @@ export class Forge {
         isolated,
         username,
         database,
-        php_version: php,
+        php_version: php || undefined,
       })
     ).data.site;
   }
