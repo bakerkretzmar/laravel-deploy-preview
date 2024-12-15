@@ -102,7 +102,7 @@ export class Forge {
         aliases,
         directory: '/public',
         isolated,
-        username,
+        username: username || undefined,
         database,
         php_version: php || undefined,
       })
