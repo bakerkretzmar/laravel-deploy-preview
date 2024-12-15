@@ -464,11 +464,93 @@ describe('sites', () => {
     expect(output3).toMatch(/sqlite \.+ \[\] OK/);
   });
 
-  test.todo('add aliases');
+  test('add aliases', async () => {
+    let name = `test-${id()}.laravel-deploy-preview.com`;
+    let alias = `test-alias-${id()}.laravel-deploy-preview.com`;
 
-  test.todo('enable isolation');
+    let site = await Forge.createSite(server, {
+      name,
+      database: '',
+      aliases: [alias],
+    });
 
-  test.todo('set isolation username');
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      aliases: [alias],
+      status: 'installing',
+    });
 
-  test.todo('set php version');
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      aliases: [alias],
+      status: 'installed',
+    });
+  });
+
+  test('enable isolation', async () => {
+    let name = `test-${id()}.laravel-deploy-preview.com`;
+    let username = `test-user-${id()}`;
+
+    let site = await Forge.createSite(server, {
+      name,
+      database: '',
+      isolated: true,
+      username,
+    });
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      username,
+      status: 'installing',
+    });
+
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      username,
+      status: 'installed',
+    });
+  });
+
+  test('set php version', async () => {
+    let name = `test-${id()}.laravel-deploy-preview.com`;
+
+    let site = await Forge.createSite(server, {
+      name,
+      database: '',
+      php: 'php83',
+    });
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      php_version: 'php83',
+      status: 'installing',
+    });
+
+    await until(
+      () => site.status === 'installed',
+      async () => (site = await Forge.getSite(server, site.id)),
+    );
+
+    expect(site).toMatchObject({
+      server_id: server,
+      name: name,
+      php_version: 'php83',
+      status: 'installed',
+    });
+  });
 });
